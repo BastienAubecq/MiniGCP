@@ -15,34 +15,25 @@ namespace cp {
      */
     class FixRemove {
     public:
-        FixRemove(IntVarIdx x, int32_t v) : x(x), v(v), i(0) {}
-        FixRemove() : x(0, 0), v(0), i(2) {}
+        FixRemove(IntVarIdx x, int32_t v) : x(x), v(v) {}
 
-        bool hasNext() const {
-            return i < 2;
+        void applyLeft(Context ctx) {
+            //printf("Fix %d to %d\n", x.index, v);
+            //ctx[x].print();
+            ctx[x].fix(v);
+            //ctx[x].print();
         }
 
-        void applyNext(Context ctx) {
-            if (i == 0) {
-                //printf("Fix %d to %d\n", x.index, v);
-                //ctx[x].print();
-                ctx[x].fix(v);
-                //ctx[x].print();
-                i = 1;
-            }
-            else {
-                //printf("Remove %d from %d\n", v, x.index);
-                //ctx[x].print();
-                ctx[x].remove(v);
-                //ctx[x].print();
-                i = 2;
-            }
+        void applyRight(Context ctx) {
+            //printf("Remove %d from %d\n", v, x.index);
+            //ctx[x].print();
+            ctx[x].remove(v);
+            //ctx[x].print();
         }
     
     private:
         IntVarIdx x;
         int32_t v;
-        int i;
     };
 
 }

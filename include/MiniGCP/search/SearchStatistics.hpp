@@ -18,17 +18,17 @@ namespace cp {
         /**
          * @brief Number of nodes explored
          */
-        int32_t nNodes = 0;
+        uint32_t nNodes = 0;
 
         /**
          * @brief Number of solutions found
          */
-        int32_t nSolutions = 0;
+        uint32_t nSolutions = 0;
 
         /**
          * @brief Number of failures
          */
-        int32_t nFailures = 0;
+        uint32_t nFailures = 0;
     };
 
 }

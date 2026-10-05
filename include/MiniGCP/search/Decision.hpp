@@ -14,15 +14,16 @@ namespace cp {
     template<typename T>
     concept Decision = std::is_trivially_copyable_v<T> && requires(T decision, Context ctx) {
         /**
-         * @brief Whether there are more children to explore
-         */
-        { decision.hasNext() } -> std::same_as<bool>;
-
-        /**
-         * @brief Apply the decision to move from the parent to the next child
+         * @brief Apply the decision to move from the parent to the left child
          * @param ctx Current context
          */
-        { decision.applyNext(ctx) } -> std::same_as<void>;
+        { decision.applyLeft(ctx) } -> std::same_as<void>;
+
+        /**
+         * @brief Apply the decision to move from the parent to the right child
+         * @param ctx Current context
+         */
+        { decision.applyRight(ctx) } -> std::same_as<void>;
     };
 
 }

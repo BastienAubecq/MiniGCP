@@ -2,12 +2,25 @@
 #define MINIGCP_SEARCH
 
 #include <cstdint>
+#include <optional>
 #include <concepts>
 #include <type_traits>
 #include "MiniGCP/search/Decision.hpp"
 #include "MiniGCP/solver/Context.hpp"
 
 namespace cp {
+
+    template<typename T>
+    struct IsOptionalDecision : std::false_type {};
+
+    template<typename T>
+    struct IsOptionalDecision<std::optional<T>> : std::true_type {
+        using Decision = T;
+    };
+
+    template<typename T>
+    concept OptionalDecision = IsOptionalDecision<T>::value;
+
 
     template<typename T>
     concept SearchStrategy = std::is_trivially_copyable_v<T> && requires(T search, Context ctx) {
@@ -18,7 +31,7 @@ namespace cp {
          * @param ctx Current context
          * @return The decision
          */
-        { search.split(ctx) } -> Decision;
+        { search.split(ctx) } -> OptionalDecision;
 
         /**
          * @brief Get the maximum depth of the search tree with this search strategy.
@@ -28,6 +41,10 @@ namespace cp {
          */
         { search.maxDepth() } -> std::same_as<uint32_t>;
     };
+
+
+    template<SearchStrategy Strategy>
+    using DecisionOf = typename IsOptionalDecision<decltype(std::declval<Strategy>().split(std::declval<Context>()))>::Decision;
 
 }
 

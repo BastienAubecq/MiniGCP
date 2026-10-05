@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <span>
+#include <optional>
 #include "sycl/sycl.hpp"
 #include "MiniGCP/Model.hpp"
 #include "MiniGCP/constraints/Constraint.hpp"
@@ -59,46 +60,48 @@ namespace cp {
                     data.initLocal(item);
                     data.initState(item);
                     data.initOutput(item);
-                    sycl::group_barrier(item.get_group());
 
                     // Iterative DFS search
                     uint32_t top = -1;
                     while (data.continueSearch(item)) {
+                        sycl::group_barrier(item.get_group());
                         data.addNode(item);
                         data.getObjective(ctx);
                         sycl::group_barrier(item.get_group());
 
-                        Decision* decision;
                         //printf("Fixpoint\n");
-                        bool backtrack = constraints.fixpoint(ctx);
+                        bool inconsistent = constraints.fixpoint(ctx);
                         sycl::group_barrier(item.get_group());
-                        if (backtrack) {
-                            data.addFailure(item);
+                        if (inconsistent) {
                             //printf("Inconsistency\n");
+                            data.addFailure(item);
                         }
                         else {
-                            Decision d = strategy.split(ctx);
-                            if (!d.hasNext()) { // Solution
+                            std::optional<Decision> decision = strategy.split(ctx);
+                            if (decision) { // Move to left child
+                                if (!data.checkIndex(++top)) {
+                                    printf("Stack overflow\n");
+                                    break;
+                                }
+                                data.saveState(item, top, *decision);
+                                sycl::group_barrier(item.get_group());
+                                if (item.get_local_id(0) == 0) decision->applyLeft(ctx);
+                                continue;
+                            }
+                            else { // Solution
                                 //printf("Solution\n");
                                 data.addSolution(ctx);
                                 sycl::group_barrier(item.get_group());
-                                backtrack = true;
-                            }
-                            if (!backtrack) {
-                                decision = data.saveState(item, ++top);
-                                if (item.get_local_id(0) == 0) *decision = d;
                             }
                         }
-                        if (backtrack) { // Backtrack
-                            if (top == -1) { // Tree fully explored
-                                break;
-                            }
-                            decision = data.restoreState(item, top);
+                        
+                        // Backtrack and move to right child
+                        if (top == -1) { // Tree fully explored
+                            break;
                         }
+                        Decision decision = data.restoreState(item, top--);
                         sycl::group_barrier(item.get_group());
-                        if (item.get_local_id(0) == 0) decision->applyNext(ctx);
-                        sycl::group_barrier(item.get_group());
-                        if (!decision->hasNext()) top--;
+                        if (item.get_local_id(0) == 0) decision.applyRight(ctx);
                     }
                 });
             }).wait();
@@ -123,7 +126,7 @@ namespace cp {
 
 
     private:
-        using Decision = decltype(std::declval<Strategy>().split(std::declval<Context>()));
+        using Decision = DecisionOf<Strategy>;
 
         Strategy strategy;
         DeviceParams params;

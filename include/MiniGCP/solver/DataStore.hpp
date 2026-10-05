@@ -128,30 +128,32 @@ namespace cp {
          * @brief Save state data and decision for a node to a stack frame
          * @param item Current thread
          * @param index Index of the frame
-         * @return Pointer to the decision
+         * @param decision The decision
          */
-        Decision* saveState(sycl::nd_item<1> item, uint32_t index) const {
+        void saveState(sycl::nd_item<1> item, uint32_t index, Decision decision) const {
             copy(item,
                 stateData + stateSize * (1 + item.get_group(0)),
                 stateData + stateSize * (1 + item.get_group_range(0) * (1 + index) + item.get_group(0)),
                 stateSize
             );
-            return decisions + item.get_group_range(0) * index + item.get_group(0);
+            if (item.get_local_id(0) == 0) {
+                decisions[item.get_group_range(0) * index + item.get_group(0)] = decision;
+            }
         }
 
         /**
          * @brief Restore state data and decision for a node from a stack frame
          * @param item Current thread
          * @param index Index of the frame
-         * @return Pointer to the decision
+         * @return The decision
          */
-        Decision* restoreState(sycl::nd_item<1> item, uint32_t index) const {
+        Decision restoreState(sycl::nd_item<1> item, uint32_t index) const {
             copy(item,
                 stateData + stateSize * (1 + item.get_group_range(0) * (1 + index)),
                 stateData + stateSize * (1 + item.get_group(0)),
                 stateSize
             );
-            return decisions + item.get_group_range(0) * index + item.get_group(0);
+            return decisions[item.get_group_range(0) * index + item.get_group(0)];
         }
 
 
@@ -184,7 +186,7 @@ namespace cp {
          * @param thread Current thread
          */
         void addNode(sycl::nd_item<1> item) const {
-            if (item.get_local_id(0) == 0) atomic(statistics->nNodes).fetch_add(1);
+            if (item.get_local_id(0) == 0) u32_atomic(statistics->nNodes).fetch_add(1);
         }
 
         /**
@@ -192,7 +194,7 @@ namespace cp {
          * @param thread Current thread
          */
         void addFailure(sycl::nd_item<1> item) const {
-            if (item.get_local_id(0) == 0) atomic(statistics->nFailures).fetch_add(1);
+            if (item.get_local_id(0) == 0) u32_atomic(statistics->nFailures).fetch_add(1);
         }
 
         /**
@@ -201,14 +203,14 @@ namespace cp {
          */
         void addSolution(Context ctx) const {
             if (ctx.item.get_local_id(0) == 0) {
-                atomic(statistics->nSolutions).fetch_add(1);
+                u32_atomic(statistics->nSolutions).fetch_add(1);
                 if (type == ProblemType::satisfaction) {
                     outputData[(output.size() + 1) * ctx.item.get_group(0) + output.size()] = 1;
                 }
                 else {
                     int32_t obj = ctx[objective].min();
-                    if (type == ProblemType::minimum) atomic(statistics->objective).fetch_min(obj);
-                    else atomic(statistics->objective).fetch_max(obj);
+                    if (type == ProblemType::minimum) i32_atomic(statistics->objective).fetch_min(obj);
+                    else i32_atomic(statistics->objective).fetch_max(obj);
                     outputData[(output.size() + 1) * ctx.item.get_group(0) + output.size()] = obj;
                 }
             }
@@ -218,8 +220,19 @@ namespace cp {
         }
 
 
+        /**
+         * @brief Check that a stack frame index is valid
+         * @param index The index
+         * @return Whether the index is valid
+         */
+        bool checkIndex(uint32_t index) const {
+            return index < stackSize;
+        }
+
+
     private:
-        using atomic = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed, sycl::memory_scope::device>;
+        using i32_atomic = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed, sycl::memory_scope::device>;
+        using u32_atomic = sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device>;
 
         uint32_t globalSize;
         uint32_t localSize;

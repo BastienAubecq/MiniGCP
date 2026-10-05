@@ -9,7 +9,7 @@ using namespace std;
 using namespace cp;
 
 int main() {
-    int n = 12;
+    int n = 14;
     Model<NotEqual> model;
     vector<IntVarIdx> variables;
     for (int i = 0; i < n; i++) {
@@ -18,13 +18,13 @@ int main() {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < i; j++) {
             model.constraint(variables[i] != variables[j]);
-            model.constraint(variables[i] + j - i != variables[j]);
-            model.constraint(variables[i] - j + i != variables[j]);
+            model.constraint(variables[i] != variables[j] + i - j);
+            model.constraint(variables[i] != variables[j] + j - i);
         }
     }
     auto variablesArray = model.array<Scope::global, IntVarIdx>(variables);
     FirstFail strategy(variablesArray);
-    DeviceParams params(sycl::gpu_selector_v, 64, 1);
+    DeviceParams params(sycl::cpu_selector_v, 1, 1);
     auto solver = EPSSolver(model, ProblemType::satisfaction, strategy, noLimit, params, variablesArray);
     solver.solve();
 
