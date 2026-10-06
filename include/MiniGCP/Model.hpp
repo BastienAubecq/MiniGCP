@@ -223,6 +223,9 @@ namespace cp {
          * @brief Get the constraints
          */
         std::tuple<std::span<const Constraints>...> getConstraints() const {
+            if (((std::get<std::vector<Constraints>>(constraints).size() == 0) || ...)) {
+                throw std::range_error("Empty constraint list. Remove unused constraint types from the model declaration.");
+            }
             return std::make_tuple(std::span(std::get<std::vector<Constraints>>(constraints))...);
         }
 

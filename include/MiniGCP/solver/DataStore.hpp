@@ -21,7 +21,8 @@ namespace cp {
 
     /**
      * @brief Device-side data
-     * @tparam D Type of decisions
+     * @tparam Decision Decision type
+     * @tparam Limit Search limit type
      */
     template<Decision Decision, SearchLimit Limit>
     class DataStore {
@@ -30,13 +31,17 @@ namespace cp {
             sycl::queue& queue, std::array<std::span<std::byte const>, 3> data,
             Limit limit, ProblemType type, IntVarIdx objective, ArrayIdx<Scope::global, IntVarIdx> output,
             uint32_t nGroups, uint32_t maxDepth
-        ) : limit(limit), type(type), objective(objective), output(output) {
+        ) : type(type), objective(objective), output(output), limit(limit) {
             globalSize = data[0].size();
             localSize = data[1].size();
             stateSize = data[2].size();
             stackSize = maxDepth;
+            sharedCurrentState = 
+                queue.get_device().get_info<sycl::info::device::local_mem_type>() == sycl::info::local_mem_type::local &&
+                queue.get_device().get_info<sycl::info::device::local_mem_size>() > stateSize;
+
             size_t allocLocalSize = localSize * (1 + nGroups);
-            size_t allocStateSize = stateSize * (1 + (1 + stackSize) * nGroups);
+            size_t allocStateSize = stateSize * (1 + (stackSize + !sharedCurrentState) * nGroups);
             if (allocLocalSize > UINT32_MAX || allocStateSize > UINT32_MAX) {
                 throw std::range_error("Allocated size exceeds 32-bit integer range");
             }
@@ -46,11 +51,12 @@ namespace cp {
             outputData = sycl::malloc_device<int32_t>((output.size() + 1) * nGroups, queue);
             decisions = sycl::malloc_device<Decision>(stackSize * nGroups, queue);
             statistics = sycl::malloc_device<SearchStatistics>(1, queue);
-            if (globalSize > 0) queue.memcpy(globalData, data[0].data(), globalSize).wait();
-            if (localSize > 0) queue.memcpy(localData, data[1].data(), localSize).wait();
-            if (stateSize > 0) queue.memcpy(stateData, data[2].data(), stateSize).wait();
+            if (globalSize > 0) queue.memcpy(globalData, data[0].data(), globalSize);
+            if (localSize > 0) queue.memcpy(localData, data[1].data(), localSize);
+            if (stateSize > 0) queue.memcpy(stateData, data[2].data(), stateSize);
             SearchStatistics stats(initialObjective());
-            queue.memcpy(statistics, &stats, sizeof(SearchStatistics)).wait();
+            queue.memcpy(statistics, &stats, sizeof(SearchStatistics));
+            queue.wait();
         }
 
         void destroy(sycl::queue& queue) const {
@@ -86,74 +92,55 @@ namespace cp {
 
 
         /**
-         * @brief Get the context of a thread
-         * @param item Current thread
+         * @brief Get required shared memory size
          */
-        Context getContext(sycl::nd_item<1> item) const {
-            return Context(item, {
-                globalData,
-                localData + localSize * (1 + item.get_group(0)),
-                stateData + stateSize * (1 + item.get_group(0))
-            });
-        }
-
-
-        /**
-         * @brief Initialize local data for a group of threads
-         * @param item Current thread
-         */
-        void initLocal(sycl::nd_item<1> item) const {
-            copy(item, localData, localData + localSize * (1 + item.get_group(0)), localSize);
+        uint32_t getSharedSize() const {
+            return sharedCurrentState ? stateSize : 1;
         }
 
         /**
-         * @brief Initialize state data for a group of threads
+         * @brief Initialize data and get context of a thread
          * @param item Current thread
+         * @param shared Shared memory
+         * @return Current context
          */
-        void initState(sycl::nd_item<1> item) const {
-            copy(item, stateData, stateData + stateSize * (1 + item.get_group(0)), stateSize);
-        }
-
-        /**
-         * @brief Initialize output data for a group of threads
-         * @param item Current thread
-         */
-        void initOutput(sycl::nd_item<1> item) const {
+        Context init(sycl::nd_item<1> item, sycl::local_accessor<std::byte> shared) const {
+            std::byte* local = localData + localSize * (1 + item.get_group(0));
+            std::byte* state = sharedCurrentState ?
+                shared.get_multi_ptr<sycl::access::decorated::no>().get() :
+                stateData + stateSize * (1 + stackSize * item.get_group_range(0));
+            copy(item, localData, local, localSize);
+            copy(item, stateData, state, stateSize);
             if (item.get_local_id(0) == 0) {
                 outputData[(output.size() + 1) * item.get_group(0) + output.size()] = initialObjective();
             }
+            return Context(item, { globalData, local, state });
         }
 
         /**
          * @brief Save state data and decision for a node to a stack frame
-         * @param item Current thread
+         * @param ctx Current context
          * @param index Index of the frame
          * @param decision The decision
          */
-        void saveState(sycl::nd_item<1> item, uint32_t index, Decision decision) const {
-            copy(item,
-                stateData + stateSize * (1 + item.get_group(0)),
-                stateData + stateSize * (1 + item.get_group_range(0) * (1 + index) + item.get_group(0)),
-                stateSize
-            );
-            if (item.get_local_id(0) == 0) {
-                decisions[item.get_group_range(0) * index + item.get_group(0)] = decision;
+        void saveState(Context ctx, uint32_t index, Decision decision) const {
+            std::byte* frame = stateData + stateSize * (1 + ctx.item.get_group_range(0) * index + ctx.item.get_group(0));
+            copy(ctx.item, ctx.getData<Scope::state>(), frame, stateSize);
+            if (ctx.item.get_local_id(0) == 0) {
+                decisions[ctx.item.get_group_range(0) * index + ctx.item.get_group(0)] = decision;
             }
         }
 
         /**
          * @brief Restore state data and decision for a node from a stack frame
-         * @param item Current thread
+         * @param ctx Current context
          * @param index Index of the frame
          * @return The decision
          */
-        Decision restoreState(sycl::nd_item<1> item, uint32_t index) const {
-            copy(item,
-                stateData + stateSize * (1 + item.get_group_range(0) * (1 + index)),
-                stateData + stateSize * (1 + item.get_group(0)),
-                stateSize
-            );
-            return decisions[item.get_group_range(0) * index + item.get_group(0)];
+        Decision restoreState(Context ctx, uint32_t index) const {
+            std::byte* frame = stateData + stateSize * (1 + ctx.item.get_group_range(0) * index + ctx.item.get_group(0));
+            copy(ctx.item, frame, ctx.getData<Scope::state>(), stateSize);
+            return decisions[ctx.item.get_group_range(0) * index + ctx.item.get_group(0)];
         }
 
 
@@ -244,10 +231,11 @@ namespace cp {
         int32_t* outputData;
         Decision* decisions;
         SearchStatistics* statistics;
-        Limit limit;
+        bool sharedCurrentState;
         ProblemType type;
         IntVarIdx objective;
         ArrayIdx<Scope::global, IntVarIdx> output;
+        Limit limit;
 
         /**
          * @brief Copy some data from a source to a destination with a group of threads

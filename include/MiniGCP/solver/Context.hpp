@@ -30,7 +30,7 @@ namespace cp {
          * @return Reference to the variable
          */
         AtomicIntVarRef operator[](IntVarIdx idx) const {
-            return AtomicIntVarRef(idx, std::get<(int)Scope::state>(data));
+            return AtomicIntVarRef(idx, getData<Scope::state>());
         }
 
         /**
@@ -40,7 +40,7 @@ namespace cp {
          */
         template<Scope scope, typename T>
         T* operator[](ArrayIdx<scope, T> idx) const {
-            return idx.get(std::get<(int)scope>(data));
+            return idx.get(getData<scope>());
         }
 
         /**
@@ -50,7 +50,16 @@ namespace cp {
          */
         template<Scope scope, typename T>
         T& operator[](ValueIdx<scope, T> idx) const {
-            return idx.get(std::get<(int)scope>(data));
+            return idx.get(getData<scope>());
+        }
+
+        /**
+         * @brief Get the data for a scope
+         * @tparam scope The scope
+         */
+        template<Scope scope>
+        std::byte* getData() const {
+            return std::get<(int)scope>(data);
         }
 
     private:

@@ -21,7 +21,8 @@ namespace cp {
         ConstraintStore(sycl::queue& queue, std::span<Constraints const>... constraints) :
             constraints(sycl::malloc_device<Constraints>(constraints.size(), queue)...),
             sizes{static_cast<uint32_t>(constraints.size())...} {
-            (queue.memcpy(std::get<Constraints*>(this->constraints), constraints.data(), constraints.size() * sizeof(Constraints)).wait(), ...);
+            (queue.memcpy(std::get<Constraints*>(this->constraints), constraints.data(), constraints.size() * sizeof(Constraints)), ...);
+            queue.wait();
         }
 
         ConstraintStore(sycl::queue& queue, std::tuple<std::span<Constraints const>...> constraints) :
