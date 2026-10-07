@@ -15,8 +15,6 @@
 #include "MiniGCP/state/ArrayIdx.hpp"
 #include "MiniGCP/state/IntVarIdx.hpp"
 
-#include <iostream>
-
 namespace cp {
 
     /**
@@ -104,17 +102,24 @@ namespace cp {
          * @param shared Shared memory
          * @return Current context
          */
-        Context init(sycl::nd_item<1> item, sycl::local_accessor<std::byte> shared) const {
+        Context threadInit(sycl::nd_item<1> item, sycl::local_accessor<std::byte> shared) const {
             std::byte* local = localData + localSize * (1 + item.get_group(0));
             std::byte* state = sharedCurrentState ?
                 shared.get_multi_ptr<sycl::access::decorated::no>().get() :
                 stateData + stateSize * (1 + stackSize * item.get_group_range(0));
-            copy(item, localData, local, localSize);
-            copy(item, stateData, state, stateSize);
             if (item.get_local_id(0) == 0) {
                 outputData[(output.size() + 1) * item.get_group(0) + output.size()] = initialObjective();
             }
             return Context(item, { globalData, local, state });
+        }
+
+        /**
+         * @brief Initialize data before solving a subproblem
+         * @param ctx Current context
+         */
+        void subproblemInit(Context ctx) const {
+            copy(ctx.item, localData, ctx.getData<Scope::local>(), localSize);
+            copy(ctx.item, stateData, ctx.getData<Scope::state>(), stateSize);
         }
 
         /**
@@ -153,8 +158,7 @@ namespace cp {
             if (item.get_local_id(0) == 0) { // Check only with first thread to make sure all threads get the same value
                 if (limit(*statistics)) stop = true;
             }
-            stop = sycl::group_broadcast(item.get_group(), stop, 0);
-            return !stop;
+            return !sycl::group_broadcast(item.get_group(), stop, 0);
         }
 
         /**
@@ -204,6 +208,19 @@ namespace cp {
             for (uint32_t i = ctx.item.get_local_id(0); i < output.size(); i += ctx.item.get_local_range(0)) {
                 outputData[(output.size() + 1) * ctx.item.get_group(0) + i] = ctx[ctx[output][i]].min();
             }
+        }
+
+        /**
+         * @brief Get the index of the next subproblem to solve
+         * @param ctx Current context
+         */
+        uint32_t nextSubproblem(Context ctx) const {
+            uint32_t subproblem = 0;
+            if (ctx.item.get_local_id(0) == 0) {
+                subproblem = u32_atomic(statistics->nextSubproblem).fetch_add(1);
+            }
+            subproblem = sycl::group_broadcast(ctx.item.get_group(), subproblem, 0);
+            return subproblem;
         }
 
 

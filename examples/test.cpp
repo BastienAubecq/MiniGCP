@@ -9,7 +9,7 @@ using namespace std;
 using namespace cp;
 
 int main() {
-    int n = 12;
+    int n = 20;
     Model<NotEqual> model;
     vector<IntVarIdx> variables;
     for (int i = 0; i < n; i++) {
@@ -24,8 +24,9 @@ int main() {
     }
     auto variablesArray = model.array<Scope::global, IntVarIdx>(variables);
     FirstFail strategy(variablesArray);
-    DeviceParams params(sycl::gpu_selector_v, 64, 1);
-    auto solver = EPSSolver(model, ProblemType::satisfaction, strategy, noLimit, params, variablesArray);
+    DeviceParams params(sycl::gpu_selector_v, 64, 14);
+    auto limit = [](SearchStatistics stats) { return stats.nSolutions >= 10000; };
+    auto solver = EPSSolver(model, ProblemType::satisfaction, strategy, limit, 10, params, variablesArray);
     solver.solve();
 
     SearchStatistics stats = solver.getStatistics();

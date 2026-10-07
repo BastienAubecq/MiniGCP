@@ -29,6 +29,11 @@ namespace cp {
          * @brief Number of failures
          */
         uint32_t nFailures = 0;
+
+        /**
+         * @brief Index of the next subproblem to solve
+         */
+        uint32_t nextSubproblem = 0;
     };
 
 }
