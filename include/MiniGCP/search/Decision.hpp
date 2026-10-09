@@ -3,6 +3,7 @@
 
 #include <concepts>
 #include <type_traits>
+#include "sycl/sycl.hpp"
 #include "MiniGCP/solver/Context.hpp"
 
 namespace cp {
@@ -12,7 +13,7 @@ namespace cp {
      * It can be applied to modify the state of the node for each branch in order.
      */
     template<typename T>
-    concept Decision = std::is_trivially_copyable_v<T> && requires(T decision, Context ctx) {
+    concept Decision = sycl::is_device_copyable_v<T> && requires(T decision, Context ctx) {
         /**
          * @brief Apply the decision to move from the parent to the left child
          * @param ctx Current context

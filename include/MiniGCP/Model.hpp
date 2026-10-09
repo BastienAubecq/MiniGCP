@@ -196,6 +196,14 @@ namespace cp {
     };
 
 
+    
+    enum class ProblemType {
+        satisfaction,
+        minimization,
+        maximization
+    };
+
+
 
     /**
      * @brief Constraint programming model.
@@ -205,6 +213,12 @@ namespace cp {
     template<Constraint... Constraints>
     class Model : public Allocator {
     public:
+        ProblemType type;
+        IntVarIdx objective = {0, 0};
+        ArrayIdx<Scope::global, IntVarIdx> output = {0, 0};
+
+        Model(ProblemType type) : type(type) {}
+
         /**
          * @brief Add a constraint to the model
          * @tparam T Type of the constraint

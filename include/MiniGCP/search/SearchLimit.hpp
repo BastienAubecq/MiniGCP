@@ -3,16 +3,17 @@
 
 #include <concepts>
 #include <type_traits>
+#include "sycl/sycl.hpp"
 #include "MiniGCP/search/SearchStatistics.hpp"
 
 namespace cp {
 
     /**
      * @brief Search limit function.
-     * It takes a reference to a `SearchStatistics` instance and returns whether the search should be stopped.
+     * It determines whether the search should be stopped based on the current search statistics.
      */
     template<typename T>
-    concept SearchLimit = std::is_trivially_copyable_v<T> &&
+    concept SearchLimit = sycl::is_device_copyable_v<T> &&
         std::invocable<T, SearchStatistics> &&
         std::same_as<std::invoke_result_t<T, SearchStatistics>, bool>;
 

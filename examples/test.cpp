@@ -9,8 +9,9 @@ using namespace std;
 using namespace cp;
 
 int main() {
-    int n = 20;
-    Model<NotEqual> model;
+    int n = 12;
+
+    Model<NotEqual> model(ProblemType::satisfaction);
     vector<IntVarIdx> variables;
     for (int i = 0; i < n; i++) {
         variables.push_back(model.variable(n));
@@ -23,15 +24,18 @@ int main() {
         }
     }
     auto variablesArray = model.array<Scope::global, IntVarIdx>(variables);
-    FirstFail strategy(variablesArray);
-    DeviceParams params(sycl::gpu_selector_v, 64, 14);
-    auto limit = [](SearchStatistics stats) { return stats.nSolutions >= 10000; };
-    auto solver = EPSSolver(model, ProblemType::satisfaction, strategy, limit, 10, params, variablesArray);
-    solver.solve();
+    model.output = variablesArray;
 
-    SearchStatistics stats = solver.getStatistics();
+    FirstFail strategy(variablesArray);
+    DeviceParams params(sycl::gpu_selector_v, 128, 14);
+    auto solver = EPSSolver(model, strategy, params, 10);
+    solver.solve([](SearchStatistics stats) { return stats.nSolutions >= 1000; });
+
+    cout << solver.getStatistics() << endl;
+    solver.solve(noLimit);
+
+    cout << solver.getStatistics() << endl;
     span<int32_t const> solution = solver.getSolution();
-    cout << "Solutions: " << stats.nSolutions << "\nNodes: " << stats.nNodes << "\nFailures: " << stats.nFailures << endl;
     for (int i = 0; i < n; i++) {
         cout << solution[i] << " ";
     }

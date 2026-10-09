@@ -38,7 +38,7 @@ namespace cp {
             smallestIndex = argmin_over_group(ctx.item.get_group(), smallestSize, smallestIndex);
             if (smallestIndex == -1) return {};
             IntVarIdx smallestVar = ctx[variables][smallestIndex];
-            //printf("Split %d-%d\n", smallestVar.index, ctx[smallestVar].min());
+            //if (ctx.item.get_local_id(0) == 0) printf("Split %d-%d\n", smallestVar.index, ctx[smallestVar].min());
             return FixRemove(smallestVar, ctx[smallestVar].min());
         }
 

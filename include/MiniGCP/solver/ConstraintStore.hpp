@@ -28,7 +28,7 @@ namespace cp {
         ConstraintStore(sycl::queue& queue, std::tuple<std::span<Constraints const>...> constraints) :
             ConstraintStore(queue, std::get<std::span<Constraints const>>(constraints)...) {}
 
-        void destroy(sycl::queue& queue) {
+        void destroy(sycl::queue& queue) const {
             (sycl::free(std::get<Constraints*>(constraints), queue), ...);
         }
 
@@ -46,6 +46,7 @@ namespace cp {
                     return true;
                 }
             } while (change != DomainChange::none);
+            sycl::group_barrier(ctx.item.get_group());
             return false;
         }
 

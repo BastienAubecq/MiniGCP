@@ -5,6 +5,7 @@
 #include <optional>
 #include <concepts>
 #include <type_traits>
+#include "sycl/sycl.hpp"
 #include "MiniGCP/search/Decision.hpp"
 #include "MiniGCP/solver/Context.hpp"
 
@@ -23,7 +24,7 @@ namespace cp {
 
 
     template<typename T>
-    concept SearchStrategy = std::is_trivially_copyable_v<T> && requires(T search, Context ctx) {
+    concept SearchStrategy = sycl::is_device_copyable_v<T> && requires(T search, Context ctx) {
         /**
          * @brief Decide how to split the search space at a node.
          * This function is called by a group of threads.
@@ -34,10 +35,9 @@ namespace cp {
         { search.split(ctx) } -> OptionalDecision;
 
         /**
-         * @brief Get the maximum depth of the search tree with this search strategy.
+         * @brief Get the maximum number of left branches on any path from the root
+         * of the search tree to a leaf with this search strategy.
          * This function is called on the host.
-         * The depth of a path from the root to a leaf is defined as the number of branches
-         * in that path that are not the right-most ones.
          */
         { search.maxDepth() } -> std::same_as<uint32_t>;
     };

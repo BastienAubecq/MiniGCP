@@ -3,13 +3,14 @@
 
 #include <concepts>
 #include <type_traits>
+#include "sycl/sycl.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
 
 namespace cp {
 
     template<typename T>
-    concept Constraint = std::is_trivially_copyable_v<T> && requires(T constraint, Context ctx) {
+    concept Constraint = sycl::is_device_copyable_v<T> && requires(T constraint, Context ctx) {
         /**
          * @brief Whether the propagator uses a group of threads.
          * Otherwise, each thread in the group will propagate a different instance of the constraint.

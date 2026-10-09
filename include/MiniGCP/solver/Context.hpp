@@ -21,8 +21,13 @@ namespace cp {
          */
         sycl::nd_item<1> item;
 
-        Context(sycl::nd_item<1> item, std::array<std::byte*, 3> data)
-            : item(item), data(data) {}
+        /**
+         * @brief Error stream
+         */
+        sycl::stream error;
+
+        Context(sycl::nd_item<1> item, sycl::stream error, std::array<std::byte*, 3> data, sycl::local_accessor<std::byte> shared)
+            : item(item), error(error), data(data), shared(shared) {}
 
         /**
          * @brief Get a reference to a variable in this context
@@ -64,6 +69,7 @@ namespace cp {
 
     private:
         std::array<std::byte*, 3> data;
+        sycl::local_accessor<std::byte> shared;
     };
 
 }
