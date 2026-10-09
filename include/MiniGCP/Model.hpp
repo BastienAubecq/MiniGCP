@@ -50,6 +50,23 @@ namespace cp {
             return { allocate<scope, T>(std::span(&value, 1), alignment) };
         }
 
+        /**
+         * @brief Allocate a temporary array.
+         * All temporary arrays overlap and are stored in local memory.
+         * They should be reset before each use and after calling functions that also use them.
+         * Get a pointer to the temporary array with the `Context.getTemporary()` method.
+         * @tparam T Type of elements in the array
+         * @param size Number of elements in the array
+         */
+        template<typename T>
+        void temporary(uint32_t size) {
+            size_t bytes = size * sizeof(T);
+            if (bytes > UINT32_MAX) {
+                throw std::range_error("Allocated size exceeds 32-bit integer range");
+            } 
+            temporarySize = std::max(temporarySize, static_cast<uint32_t>(bytes));
+        }
+
 
         /**
          * @brief Allocate an integer variable with an initially full domain
@@ -164,8 +181,13 @@ namespace cp {
             return { data[0], data[1], data[2] };
         }
 
+        uint32_t getTemporarySize() const {
+            return temporarySize;
+        }
+
     private:
         std::array<std::vector<std::byte>, 3> data; // A vector of bytes per scope
+        uint32_t temporarySize = 0;
 
         /**
          * @brief Allocate an array

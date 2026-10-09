@@ -34,7 +34,7 @@ namespace cp {
 
         DeviceSolver(sycl::queue& queue, Model<Constraints...> model, Strategy strategy, uint32_t nGroups) :
             type(model.type), objective(model.objective), strategy(strategy),
-            data(queue, model.getData(), model.output, nGroups, strategy.maxDepth(), SearchStatistics(model.type).objective),
+            data(queue, model.getData(), model.getTemporarySize(), model.output, nGroups, strategy.maxDepth(), SearchStatistics(model.type).objective),
             constraints(queue, model.getConstraints()) {
             statistics = sycl::malloc_device<SearchStatistics>(1, queue);
             SearchStatistics stats(model.type);
@@ -170,13 +170,13 @@ namespace cp {
         template<typename Kernel>
         void parallelFor(DeviceSolver<Strategy, Constraints...>& solver, uint32_t nGroups, uint32_t groupSize, Kernel kernel) {
             queue.submit([=](sycl::handler& handler) {
-                sycl::local_accessor<std::byte> shared(solver.data.getSharedSize(), handler);
+                auto local = solver.data.getLocalMemory(handler);
                 sycl::stream error(8192, 1024, handler);
 
                 handler.parallel_for(sycl::nd_range<1>(nGroups * groupSize, groupSize), [=](sycl::nd_item<1> item) {
                     if (solver.statistics->completed) return;
 
-                    Context ctx = solver.data.getContext(item, error, shared);
+                    Context ctx = solver.data.getContext(item, error, local);
                     if (!solver.firstSearch) solver.data.restore(ctx);
                     kernel(ctx, solver);
                     solver.data.save(ctx);

@@ -12,6 +12,7 @@ namespace cp {
         inconsistency = 2 // An inconsistency was detected
     };
 
+
     constexpr DomainChange operator|(DomainChange change1, DomainChange change2) {
         return static_cast<DomainChange>((int)change1 | (int)change2);
     }
@@ -28,6 +29,24 @@ namespace cp {
     inline DomainChange& operator&=(DomainChange& change1, DomainChange change2) {
         change1 = change1 & change2;
         return change1;
+    }
+
+
+    /**
+     * @brief Combine changes over a group of threads
+     * @param group The group
+     * @param change Current thread's change
+     * @return Combined changes
+     */
+    inline DomainChange groupChange(sycl::group<1> group, DomainChange change) {
+        DomainChange combined = DomainChange::none;
+        if (sycl::any_of_group(group, (change & DomainChange::changed) == DomainChange::changed)) {
+            combined |= DomainChange::changed;
+        }
+        if (sycl::any_of_group(group, (change & DomainChange::inconsistency) == DomainChange::inconsistency)) {
+            combined |= DomainChange::inconsistency;
+        }
+        return combined;
     }
 
 }

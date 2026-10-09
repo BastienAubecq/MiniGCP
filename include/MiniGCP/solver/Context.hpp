@@ -26,8 +26,8 @@ namespace cp {
          */
         sycl::stream error;
 
-        Context(sycl::nd_item<1> item, sycl::stream error, std::array<std::byte*, 3> data, sycl::local_accessor<std::byte> shared)
-            : item(item), error(error), data(data), shared(shared) {}
+        Context(sycl::nd_item<1> item, sycl::stream error, std::array<std::byte*, 3> data, std::byte* temporary)
+            : item(item), error(error), data(data), temporary(temporary) {}
 
         /**
          * @brief Get a reference to a variable in this context
@@ -59,6 +59,14 @@ namespace cp {
         }
 
         /**
+         * @brief Get a reference to a temporary array in this context
+         */
+        template<typename T>
+        T* getTemporary() const {
+            return reinterpret_cast<T*>(temporary);
+        }
+
+        /**
          * @brief Get the data for a scope
          * @tparam scope The scope
          */
@@ -69,7 +77,7 @@ namespace cp {
 
     private:
         std::array<std::byte*, 3> data;
-        sycl::local_accessor<std::byte> shared;
+        std::byte* temporary;
     };
 
 }

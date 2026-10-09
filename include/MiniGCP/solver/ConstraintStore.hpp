@@ -81,11 +81,9 @@ namespace cp {
                     for (uint32_t j = ctx.item.get_local_id(0); j < std::get<i>(sizes); j += ctx.item.get_local_range(0)) {
                         change |= std::get<i>(constraints)[j].propagate(ctx);
                     }
-                    if (sycl::any_of_group(ctx.item.get_group(), (change & DomainChange::inconsistency) == DomainChange::inconsistency)) {
+                    change = groupChange(ctx.item.get_group(), change);
+                    if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) {
                         return DomainChange::inconsistency;
-                    }
-                    if (sycl::any_of_group(ctx.item.get_group(), (change & DomainChange::changed) == DomainChange::changed)) {
-                        change |= DomainChange::changed;
                     }
                 }
                 return change | propagate<i+1>(ctx);

@@ -27,16 +27,18 @@ namespace cp {
     class DataStore {
     public:
         DataStore(
-            sycl::queue& queue, std::array<std::span<std::byte const>, 3> data,
+            sycl::queue& queue, std::array<std::span<std::byte const>, 3> data, uint32_t temporarySize,
             ArrayIdx<Scope::global, IntVarIdx> output, uint32_t nGroups, uint32_t maxDepth, int32_t objective
-        ) : output(output) {
+        ) : temporarySize(temporarySize), output(output) {
             globalSize = data[0].size();
             localSize = data[1].size();
             stateSize = data[2].size();
             stackSize = maxDepth;
-            sharedCurrentState = 
+            size_t localMemorySize = queue.get_device().get_info<sycl::info::device::local_mem_size>();
+            if (temporarySize > localMemorySize) throw std::range_error("Temporary size exceeds local memory size");
+            localCurrentState =
                 queue.get_device().get_info<sycl::info::device::local_mem_type>() == sycl::info::local_mem_type::local &&
-                queue.get_device().get_info<sycl::info::device::local_mem_size>() > stateSize;
+                localMemorySize > temporarySize + stateSize;
             
             size_t allocLocalSize = localSize * (1 + nGroups);
             size_t allocStateSize = stateSize * (1 + (stackSize + 1) * nGroups);
@@ -96,27 +98,30 @@ namespace cp {
 
 
         /**
-         * @brief Get required shared memory size
+         * @brief Get local memory
          */
-        uint32_t getSharedSize() const {
-            return sharedCurrentState ? stateSize : 1;
+        std::array<sycl::local_accessor<std::byte>, 2> getLocalMemory(sycl::handler& handler) const {
+            return {
+                sycl::local_accessor<std::byte>(temporarySize, handler),
+                sycl::local_accessor<std::byte>(localCurrentState ? stateSize : 0, handler)
+            };
         }
 
         /**
          * @brief Get the context of a thread
          * @param item Current thread
          * @param error Error stream
-         * @param shared Shared memory
+         * @param local Local memory
          * @return Current context
          */
-        Context getContext(sycl::nd_item<1> item, sycl::stream error, sycl::local_accessor<std::byte> shared) const {
+        Context getContext(sycl::nd_item<1> item, sycl::stream error, std::array<sycl::local_accessor<std::byte>, 2> local) const {
             return Context(item, error, {
                 globalData,
                 localData + localSize * (1 + item.get_group(0)),
-                sharedCurrentState ?
-                    shared.get_multi_ptr<sycl::access::decorated::no>().get() :
+                localCurrentState ?
+                    std::get<1>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
                     stateData + stateSize * (1 + item.get_group(0))
-            }, shared);
+            }, std::get<0>(local).get_multi_ptr<sycl::access::decorated::no>().get());
         }
 
 
@@ -134,7 +139,7 @@ namespace cp {
          * @param ctx Current context
          */
         void save(Context ctx) const {
-            if (sharedCurrentState) {
+            if (localCurrentState) {
                 copy(ctx.item, ctx.getData<Scope::state>(), stateData + stateSize * (1 + ctx.item.get_group(0)), stateSize);
             }
         }
@@ -144,7 +149,7 @@ namespace cp {
          * @param ctx Current context
          */
         void restore(Context ctx) const {
-            if (sharedCurrentState) {
+            if (localCurrentState) {
                 copy(ctx.item, stateData + stateSize * (1 + ctx.item.get_group(0)), ctx.getData<Scope::state>(), stateSize);
             }
         }
@@ -220,13 +225,14 @@ namespace cp {
         uint32_t localSize;
         uint32_t stateSize;
         uint32_t stackSize;
+        uint32_t temporarySize;
+        bool localCurrentState; // Whether the current state is stored in local memory
         std::byte* globalData;
         std::byte* localData;
         std::byte* stateData; // Stacks of states
         int32_t* outputData; // Values of the output variables
         Decision* decisions; // Stack of decisions
         uint32_t* tops; // Top of the stacks
-        bool sharedCurrentState; // Whether the current state is stored in shared memory
         ArrayIdx<Scope::global, IntVarIdx> output;
 
         /**

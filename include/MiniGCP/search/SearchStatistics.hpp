@@ -38,7 +38,7 @@ namespace cp {
         uint32_t nextSubproblem = 0;
 
         /**
-         * @brief Whether the search was completed
+         * @brief Whether the search tree was fully explored
          */
         bool completed = false;
 
