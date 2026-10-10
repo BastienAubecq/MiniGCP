@@ -33,6 +33,8 @@ namespace cp {
             globalSize = data[0].size();
             localSize = data[1].size();
             stateSize = data[2].size();
+            if (localSize % sizeof(uint32_t) != 0) localSize += sizeof(uint32_t) - localSize % sizeof(uint32_t);
+            if (stateSize % sizeof(uint32_t) != 0) stateSize += sizeof(uint32_t) - stateSize % sizeof(uint32_t);
             stackSize = maxDepth;
             size_t localMemorySize = queue.get_device().get_info<sycl::info::device::local_mem_size>();
             if (temporarySize > localMemorySize) throw std::range_error("Temporary size exceeds local memory size");
@@ -243,8 +245,11 @@ namespace cp {
          * @param size Number of bytes to copy
          */
         void copy(sycl::nd_item<1> item, std::byte const* src, std::byte* dst, uint32_t size) const {
+            uint32_t const* src32 = reinterpret_cast<uint32_t const*>(src);
+            uint32_t* dst32 = reinterpret_cast<uint32_t*>(dst);
+            size /= sizeof(uint32_t);
             for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0)) {
-                dst[i] = src[i];
+                dst32[i] = src32[i];
             }
             sycl::group_barrier(item.get_group());
         }
