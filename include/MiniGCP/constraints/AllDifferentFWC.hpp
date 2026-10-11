@@ -24,7 +24,7 @@ namespace cp {
             variables(allocator.array<Scope::local, IntVarIdx>(variables)),
             nFixed(allocator.value<Scope::state, uint32_t>(0)) {}
 
-        DomainChange propagate(Context ctx) {
+        DomainChange propagate(Context ctx) const {
             uint32_t& fixed = ctx[nFixed];
             IntVarIdx* vars = ctx[variables];
             DomainChange change = DomainChange::none;
@@ -61,7 +61,7 @@ namespace cp {
             allocator.temporary<uint32_t>(1);
         }
 
-        DomainChange propagate(Context ctx) {
+        DomainChange propagate(Context ctx) const {
             uint32_t fixed = ctx[nFixed];
             IntVarIdx* vars = ctx[variables];
             DomainChange change = DomainChange::none;

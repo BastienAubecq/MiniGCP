@@ -17,14 +17,14 @@ namespace cp {
     public:
         FixRemove(IntVarIdx x, int32_t v) : x(x), v(v) {}
 
-        void applyLeft(Context ctx) {
+        void applyLeft(Context ctx) const {
             //printf("Fix %d to %d\n", x.index, v);
             //ctx[x].print();
             ctx[x].fix(v);
             //ctx[x].print();
         }
 
-        void applyRight(Context ctx) {
+        void applyRight(Context ctx) const {
             //printf("Remove %d from %d\n", v, x.index);
             //ctx[x].print();
             ctx[x].remove(v);

@@ -39,14 +39,13 @@ namespace cp {
      * @return Combined changes
      */
     inline DomainChange groupChange(sycl::group<1> group, DomainChange change) {
-        DomainChange combined = DomainChange::none;
         if (sycl::any_of_group(group, (change & DomainChange::changed) == DomainChange::changed)) {
-            combined |= DomainChange::changed;
+            change |= DomainChange::changed;
         }
         if (sycl::any_of_group(group, (change & DomainChange::inconsistency) == DomainChange::inconsistency)) {
-            combined |= DomainChange::inconsistency;
+            change |= DomainChange::inconsistency;
         }
-        return combined;
+        return change;
     }
 
 }

@@ -14,13 +14,6 @@ using namespace std;
 using namespace cp;
 
 
-static DomainChange combineChanges(std::vector<DomainChange> const& changes) {
-    DomainChange change = DomainChange::none;
-    for (DomainChange c : changes) change |= c;
-    return change;
-}
-
-
 TEST_CASE("remove simple", "[AtomicIntVarRef][device]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);

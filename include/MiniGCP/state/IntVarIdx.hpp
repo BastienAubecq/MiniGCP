@@ -30,7 +30,7 @@ namespace cp {
             return *this;
         }
 
-    public:
+    private:
         uint32_t index;
         int32_t offset;
     };
