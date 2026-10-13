@@ -33,9 +33,9 @@ inline std::vector<R> runOnDevice(cp::Allocator& allocator, size_t nThreads, K k
 
     q.submit([=](sycl::handler& h) {
         sycl::stream error(8192, 1024, h);
-        sycl::local_accessor<std::byte> temporary(temporarySize, h);
+        sycl::local_accessor<std::byte> temporary(temporarySize + 16, h);
         h.parallel_for(sycl::nd_range<1>(nThreads, nThreads), [=](sycl::nd_item<1> item) {
-            cp::Context ctx(item, error, deviceData, temporary.get_multi_ptr<sycl::access::decorated::no>().get());
+            cp::Context ctx(item, error, deviceData, temporary.get_multi_ptr<sycl::access::decorated::no>().get() + 16);
             deviceResults[item.get_global_id(0)] = kernel(ctx);
         });
     }).wait();

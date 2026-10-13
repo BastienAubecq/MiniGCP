@@ -104,7 +104,7 @@ namespace cp {
          */
         std::array<sycl::local_accessor<std::byte>, 2> getLocalMemory(sycl::handler& handler) const {
             return {
-                sycl::local_accessor<std::byte>(temporarySize, handler),
+                sycl::local_accessor<std::byte>(temporarySize + 4, handler), // Add 4 bytes for utils
                 sycl::local_accessor<std::byte>(localCurrentState ? stateSize : 0, handler)
             };
         }
@@ -123,7 +123,7 @@ namespace cp {
                 localCurrentState ?
                     std::get<1>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
                     stateData + stateSize * (1 + item.get_group(0))
-            }, std::get<0>(local).get_multi_ptr<sycl::access::decorated::no>().get());
+            }, std::get<0>(local).get_multi_ptr<sycl::access::decorated::no>().get() + 4);
         }
 
 

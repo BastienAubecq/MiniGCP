@@ -9,8 +9,9 @@ set(CMAKE_CXX_FLAGS -Wall)
 find_package(Catch2 3 REQUIRED)
 
 add_executable(tests
-    constraints/test_NotEqual.cpp
     constraints/test_AllDifferentFWC.cpp
+    constraints/test_Sum.cpp
+    constraints/test_NotEqual.cpp
     search/test_FixRemove.cpp
     search/test_FirstFail.cpp
     state/test_IntVarRef.cpp

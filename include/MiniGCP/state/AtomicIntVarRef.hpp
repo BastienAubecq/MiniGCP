@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include "sycl/sycl.hpp"
-#include "MiniGCP/utils.hpp" 
 #include "MiniGCP/state/DomainChange.hpp"
 #include "MiniGCP/state/IntVarIdx.hpp"
 

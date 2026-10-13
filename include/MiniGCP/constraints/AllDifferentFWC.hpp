@@ -4,6 +4,7 @@
 #include <utility>
 #include <span>
 #include "MiniGCP/Model.hpp"
+#include "MiniGCP/utils.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
@@ -13,7 +14,7 @@
 namespace cp {
 
     /**
-     * @brief Constraint : xi != xj for all i, j.
+     * @brief Constraint : x_i != x_j for all i, j.
      * Forward checking filtering, sequential implementation.
      */
     class AllDifferentFWCSeq {
@@ -25,14 +26,14 @@ namespace cp {
             nFixed(allocator.value<Scope::state, uint32_t>(0)) {}
 
         DomainChange propagate(Context ctx) const {
-            uint32_t& fixed = ctx[nFixed];
+            uint32_t& nFixed = ctx[this->nFixed];
             IntVarIdx* vars = ctx[variables];
             DomainChange change = DomainChange::none;
-            for (uint32_t i = fixed; i < variables.size(); i++) {
+            for (uint32_t i = nFixed; i < variables.size(); i++) {
                 if (ctx[vars[i]].fixed()) {
                     int32_t v = ctx[vars[i]].min();
-                    std::swap(vars[fixed++], vars[i]);
-                    for (uint32_t j = fixed; j < variables.size(); j++) {
+                    std::swap(vars[nFixed++], vars[i]);
+                    for (uint32_t j = nFixed; j < variables.size(); j++) {
                         change |= ctx[vars[j]].remove(v);
                     }
                 }
@@ -57,40 +58,35 @@ namespace cp {
 
         AllDifferentFWC(Allocator& allocator, std::span<IntVarIdx const> variables) :
             variables(allocator.array<Scope::local, IntVarIdx>(variables)),
-            nFixed(allocator.value<Scope::state, uint32_t>(0)) {
-            allocator.temporary<uint32_t>(1);
-        }
+            nFixed(allocator.value<Scope::state, uint32_t>(0)) {}
 
         DomainChange propagate(Context ctx) const {
-            uint32_t fixed = ctx[nFixed];
+            uint32_t nFixed = ctx[this->nFixed];
             IntVarIdx* vars = ctx[variables];
             DomainChange change = DomainChange::none;
-            uint32_t* index = ctx.getTemporary<uint32_t>();
 
-            for (uint32_t b = fixed; b < variables.size(); b += ctx.item.get_local_range(0)) {
+            for (uint32_t b = nFixed; b < variables.size(); b += ctx.item.get_local_range(0)) {
                 uint32_t i = b + ctx.item.get_local_id(0);
-                while (true) {
+                std::optional<uint32_t> fixed;
+                do {
                     // Broadcast any fixed variable
-                    if (ctx.item.get_local_id(0) == 0) *index = -1;
-                    sycl::group_barrier(ctx.item.get_group());
-                    if (i >= fixed && i < variables.size() && ctx[vars[i]].fixed()) *index = i;
-                    sycl::group_barrier(ctx.item.get_group());
-
-                    if (*index == -1) break; // No more fixed variables in this batch
-                    else {
-                        if (ctx.item.get_local_id(0) == 0) std::swap(vars[fixed], vars[*index]);
+                    bool broadcast = i >= nFixed && i < variables.size() && ctx[vars[i]].fixed();
+                    fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
+                    
+                    if (fixed) {
+                        if (ctx.item.get_local_id(0) == 0) std::swap(vars[nFixed], vars[*fixed]);
                         sycl::group_barrier(ctx.item.get_group());
 
                         // Remove fixed value from other variables
-                        int32_t v = ctx[vars[fixed++]].min();
-                        for (uint32_t j = fixed + ctx.item.get_local_id(0); j < variables.size(); j += ctx.item.get_local_range(0)) {
+                        int32_t v = ctx[vars[nFixed++]].min();
+                        for (uint32_t j = nFixed + ctx.item.get_local_id(0); j < variables.size(); j += ctx.item.get_local_range(0)) {
                             change |= ctx[vars[j]].remove(v);
                         }
                     }
-                }
+                } while (fixed);
             }
             
-            if (ctx.item.get_local_id(0) == 0) ctx[nFixed] = fixed;
+            if (ctx.item.get_local_id(0) == 0) ctx[this->nFixed] = nFixed;
             return groupChange(ctx.item.get_group(), change);
         }
 

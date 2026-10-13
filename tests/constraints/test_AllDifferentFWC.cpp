@@ -142,6 +142,7 @@ TEST_CASE("parallel inconsistency", "[AllDifferentFWC][device]") {
     })[0] & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
+
 TEST_CASE("concurrent few variables", "[AllDifferentFWC][device][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
