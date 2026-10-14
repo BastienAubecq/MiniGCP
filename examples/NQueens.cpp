@@ -1,36 +1,38 @@
 #include <iostream>
 #include <vector>
 #include "MiniGCP/Model.hpp"
-#include "MiniGCP/constraints/NotEqual.hpp"
+#include "MiniGCP/constraints/AllDifferentFWC.hpp"
 #include "MiniGCP/search/FirstFail.hpp"
-#include "MiniGCP/solver/EPSSolver.hpp"
+#include "MiniGCP/solver/DFSSolver.hpp"
 
 using namespace std;
 using namespace cp;
 
 int main() {
-    int n = 12;
-    Model<NotEqual> model;
-    vector<IntVarIdx> variables;
-    for (int i = 0; i < n; i++) {
-        variables.push_back(model.variable(n));
-    }
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < i; j++) {
-            model.constraint(variables[i] != variables[j]);
-            model.constraint(variables[i] + j - i != variables[j]);
-            model.constraint(variables[i] - j + i != variables[j]);
-        }
-    }
-    auto variablesArray = model.array<Scope::global, IntVarIdx>(variables);
-    FirstFail strategy(variablesArray);
-    DeviceParams params(sycl::gpu_selector_v, 64, 1);
-    auto solver = EPSSolver(model, ProblemType::satisfaction, strategy, noLimit, params, variablesArray);
-    solver.solve();
+    int n = 30;
 
-    SearchStatistics stats = solver.getStatistics();
+    Model<AllDifferentFWC> model(ProblemType::satisfaction);
+    vector<IntVarIdx> variables;
+    vector<IntVarIdx> diag1;
+    vector<IntVarIdx> diag2;
+    for (int i = 0; i < n; i++) {
+        IntVarIdx q = model.variable(n);
+        variables.push_back(q);
+        diag1.push_back(q + i);
+        diag2.push_back(q - i);
+    }
+    model.constraint(AllDifferentFWC(model, variables));
+    model.constraint(AllDifferentFWC(model, diag1));
+    model.constraint(AllDifferentFWC(model, diag2));
+    model.output = model.array<Scope::global, IntVarIdx>(variables);
+
+    FirstFail strategy(model.output);
+    DeviceParams params(sycl::gpu_selector_v, 64, 1);
+    auto solver = DFSSolver(model, strategy, params);
+    solver.solve([](SearchStatistics stats) { return stats.nSolutions >= 10000; });
+
+    cout << solver.getStatistics() << endl;
     span<int32_t const> solution = solver.getSolution();
-    cout << "Solutions: " << stats.nSolutions << "\nNodes: " << stats.nNodes << "\nFailures: " << stats.nFailures << endl;
     for (int i = 0; i < n; i++) {
         cout << solution[i] << " ";
     }

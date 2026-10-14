@@ -27,21 +27,21 @@ namespace cp {
          * @brief Get the minimum value in the domain
          */
         int32_t min() const {
-            return relaxed_atomic(ptr[0]).load() + offset;
+            return atomic(ptr[0]).load() + offset;
         }
 
         /**
          * @brief Get the maximum value in the domain
          */
         int32_t max() const {
-            return relaxed_atomic(ptr[1]).load() + offset;
+            return atomic(ptr[1]).load() + offset;
         }
 
         /**
          * @brief Get the number of values in the domain
          */
         int32_t size() const {
-            return relaxed_atomic(ptr[2]).load();
+            return atomic(ptr[2]).load();
         }
         
         /**
@@ -58,7 +58,7 @@ namespace cp {
         bool contains(int32_t value) const {
             if (value < min() || value > max()) return false;
             value -= offset;
-            return consistent_atomic(ptr[3 + value / 32]).load() & ((int32_t)1 << value % 32);
+            return atomic(ptr[3 + value / 32]).load() & ((int32_t)1 << value % 32);
         }
 
         
@@ -71,11 +71,15 @@ namespace cp {
             if (value < min() || value > max()) return DomainChange::none;
             value -= offset;
             int32_t bit = (int32_t)1 << value % 32;
-            int32_t prev = consistent_atomic(ptr[3 + value / 32]).fetch_and(~bit); // Clear bit
+            int32_t prev = atomic(ptr[3 + value / 32]).fetch_and(~bit); // Clear bit
             if (!(prev & bit)) return DomainChange::none;
+
+            // updateSize must be before updateMin/Max so that if 2 threads update the bitset concurrently,
+            // one of them sees both updates in updateMin/Max thanks to the acq_rel atomic operation in updateSize.
+            DomainChange change = updateSize(1, true);
             updateMin();
             updateMax();
-            return updateSize(1);
+            return change;
         }
 
         /**
@@ -85,22 +89,22 @@ namespace cp {
          */
         DomainChange fix(int32_t value) const {
             value -= offset;
-            int32_t min = relaxed_atomic(ptr[0]);
-            int32_t max = relaxed_atomic(ptr[1]);
+            int32_t min = atomic(ptr[0]);
+            int32_t max = atomic(ptr[1]);
             if (value == min && value == max) return DomainChange::none;
             if (value < min || value > max) return DomainChange::inconsistency;
-            relaxed_atomic(ptr[0]).fetch_max(value); // Update min
-            relaxed_atomic(ptr[1]).fetch_min(value); // Update max
+            atomic(ptr[0]).fetch_max(value); // Update min
+            atomic(ptr[1]).fetch_min(value); // Update max
 
             // Clear and count bits
             int32_t index = 3 + value / 32;
             int32_t bit = (int32_t)1 << value % 32;
-            int32_t removed = sycl::popcount(consistent_atomic(ptr[index]).fetch_and(bit) & ~bit);
+            int32_t removed = sycl::popcount(atomic(ptr[index]).fetch_and(bit) & ~bit);
             for (int i = 3 + min / 32; i < index; i++) {
-                removed += sycl::popcount(consistent_atomic(ptr[i]).exchange(0));
+                removed += sycl::popcount(atomic(ptr[i]).exchange(0));
             }
             for (int i = index + 1; i <= 3 + max / 32; i++) {
-                removed += sycl::popcount(consistent_atomic(ptr[i]).exchange(0));
+                removed += sycl::popcount(atomic(ptr[i]).exchange(0));
             }
 
             return updateSize(removed);
@@ -113,21 +117,22 @@ namespace cp {
          */
         DomainChange removeBelow(int32_t value) const {
             value -= offset;
-            int32_t min = relaxed_atomic(ptr[0]);
+            int32_t min = atomic(ptr[0]);
             if (value <= min) return DomainChange::none;
-            if (value > relaxed_atomic(ptr[1]).load()) return DomainChange::inconsistency;
-            relaxed_atomic(ptr[0]).fetch_max(value); // Update min
+            if (value > atomic(ptr[1]).load()) return DomainChange::inconsistency;
+            atomic(ptr[0]).fetch_max(value); // Update min
 
             // Clear and count bits
             int32_t index = 3 + value / 32;
             int32_t bits = ((int32_t)1 << value % 32) - 1;
-            int32_t removed = sycl::popcount(consistent_atomic(ptr[index]).fetch_and(~bits) & bits);
+            int32_t removed = sycl::popcount(atomic(ptr[index]).fetch_and(~bits) & bits);
             for (int i = 3 + min / 32; i < index; i++) {
-                removed += sycl::popcount(consistent_atomic(ptr[i]).exchange(0));
+                removed += sycl::popcount(atomic(ptr[i]).exchange(0));
             }
 
+            DomainChange change = updateSize(removed, true);
             updateMin();
-            return updateSize(removed);
+            return change;
         }
 
         /**
@@ -137,21 +142,22 @@ namespace cp {
          */
         DomainChange removeAbove(int32_t value) const {
             value -= offset;
-            int32_t max = relaxed_atomic(ptr[1]);
+            int32_t max = atomic(ptr[1]);
             if (value >= max) return DomainChange::none;
-            if (value < relaxed_atomic(ptr[0]).load()) return DomainChange::inconsistency;
-            relaxed_atomic(ptr[1]).fetch_min(value); // Update max
+            if (value < atomic(ptr[0]).load()) return DomainChange::inconsistency;
+            atomic(ptr[1]).fetch_min(value); // Update max
 
             // Clear and count bits
             int32_t index = 3 + value / 32;
             int32_t bits = ~(((int32_t)1 << value % 32) - 1) << 1;
-            int32_t removed = sycl::popcount(consistent_atomic(ptr[index]).fetch_and(~bits) & bits);
+            int32_t removed = sycl::popcount(atomic(ptr[index]).fetch_and(~bits) & bits);
             for (int i = index + 1; i <= 3 + max / 32; i++) {
-                removed += sycl::popcount(consistent_atomic(ptr[i]).exchange(0));
+                removed += sycl::popcount(atomic(ptr[i]).exchange(0));
             }
 
+            DomainChange change = updateSize(removed, true);
             updateMax();
-            return updateSize(removed);
+            return change;
         }
 
 
@@ -161,8 +167,7 @@ namespace cp {
 
 
     private:
-        using relaxed_atomic = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed, sycl::memory_scope::work_group>;
-        using consistent_atomic = sycl::atomic_ref<int32_t, sycl::memory_order::seq_cst, sycl::memory_scope::work_group>;
+        using atomic = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed, sycl::memory_scope::work_group>;
 
         int32_t* ptr;
         int32_t offset;
@@ -171,10 +176,10 @@ namespace cp {
          * @brief Recompute min after removing some values
          */
         void updateMin() const {
-            for (int32_t i = 3 + relaxed_atomic(ptr[0]).load() / 32; i <= 3 + relaxed_atomic(ptr[1]).load() / 32; i++) {
-                int32_t word = consistent_atomic(ptr[i]).load();
+            for (int32_t i = 3 + atomic(ptr[0]).load() / 32; i <= 3 + atomic(ptr[1]).load() / 32; i++) {
+                int32_t word = atomic(ptr[i]).load();
                 if (word != 0) {
-                    relaxed_atomic(ptr[0]).fetch_max((i - 3) * 32 + sycl::ctz(word));
+                    atomic(ptr[0]).fetch_max((i - 3) * 32 + sycl::ctz(word));
                     return;
                 }
             }
@@ -184,10 +189,10 @@ namespace cp {
          * @brief Recompute max after removing some values
          */
         void updateMax() const {
-            for (int32_t i = 3 + relaxed_atomic(ptr[1]).load() / 32; i >= 3 + relaxed_atomic(ptr[0]).load() / 32; i--) {
-                int32_t word = consistent_atomic(ptr[i]).load();
+            for (int32_t i = 3 + atomic(ptr[1]).load() / 32; i >= 3 + atomic(ptr[0]).load() / 32; i--) {
+                int32_t word = atomic(ptr[i]).load();
                 if (word != 0) {
-                    relaxed_atomic(ptr[1]).fetch_min((i - 3) * 32 + 31 - sycl::clz(word));
+                    atomic(ptr[1]).fetch_min((i - 3) * 32 + 31 - sycl::clz(word));
                     return;
                 }
             }
@@ -196,11 +201,12 @@ namespace cp {
         /**
          * @brief Decrease size after removing some values
          * @param removed Number of values removed
+         * @param sync Whether to use an acq_rel atomic operation
          * @return Whether an inconsistency was detected
          */
-        DomainChange updateSize(int32_t removed) const {
+        DomainChange updateSize(int32_t removed, bool sync = false) const {
             if (removed == 0) return DomainChange::none;
-            int32_t prev = relaxed_atomic(ptr[2]).fetch_sub(removed);
+            int32_t prev = atomic(ptr[2]).fetch_sub(removed, sync ? sycl::memory_order::acq_rel : sycl::memory_order::relaxed);
             return prev == removed ? DomainChange::inconsistency : DomainChange::changed;
         }
     };
