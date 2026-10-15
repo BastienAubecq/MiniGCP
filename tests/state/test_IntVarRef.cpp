@@ -8,7 +8,7 @@ using namespace std;
 using namespace cp;
 
 
-TEST_CASE("addVariable(size) simple", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef addVariable(size) simple", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -21,7 +21,7 @@ TEST_CASE("addVariable(size) simple", "[IntVarRef][host]") {
     REQUIRE_FALSE(v.contains(10));
 }
 
-TEST_CASE("addVariable(size) multiple words", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef addVariable(size) multiple words", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(70)];
 
@@ -33,7 +33,7 @@ TEST_CASE("addVariable(size) multiple words", "[IntVarRef][host]") {
     REQUIRE_FALSE(v.contains(70));
 }
 
-TEST_CASE("addVariable(min,max)", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef addVariable(min,max)", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(5, 10)];
 
@@ -45,7 +45,7 @@ TEST_CASE("addVariable(min,max)", "[IntVarRef][host]") {
     REQUIRE_FALSE(v.contains(11));
 }
 
-TEST_CASE("addVariable(values)", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef addVariable(values)", "[IntVarRef][host]") {
     vector<int32_t> values{ -5, -4, -1, 2, 3, 4, 10, 40 };
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(values)];
@@ -61,7 +61,7 @@ TEST_CASE("addVariable(values)", "[IntVarRef][host]") {
 }
 
 
-TEST_CASE("remove simple", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef remove simple", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -72,7 +72,7 @@ TEST_CASE("remove simple", "[IntVarRef][host]") {
     for (int32_t i = 6; i < 10; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("remove outside bounds", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef remove outside bounds", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -81,7 +81,7 @@ TEST_CASE("remove outside bounds", "[IntVarRef][host]") {
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("remove already removed", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef remove already removed", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
     v.remove(5);
@@ -90,7 +90,7 @@ TEST_CASE("remove already removed", "[IntVarRef][host]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("remove min", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef remove min", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -100,7 +100,7 @@ TEST_CASE("remove min", "[IntVarRef][host]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("remove max", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef remove max", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -110,7 +110,7 @@ TEST_CASE("remove max", "[IntVarRef][host]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("remove last", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef remove last", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(1)];
 
@@ -118,7 +118,7 @@ TEST_CASE("remove last", "[IntVarRef][host]") {
 }
 
 
-TEST_CASE("fix simple", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef fix simple", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -132,7 +132,7 @@ TEST_CASE("fix simple", "[IntVarRef][host]") {
     for (int32_t i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
 }
 
-TEST_CASE("fix already fixed", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef fix already fixed", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(1)];
 
@@ -140,14 +140,14 @@ TEST_CASE("fix already fixed", "[IntVarRef][host]") {
     REQUIRE(v.fixed());
 }
 
-TEST_CASE("fix outside bounds", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef fix outside bounds", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
     REQUIRE(v.fix(15) == DomainChange::inconsistency);
 }
 
-TEST_CASE("fix removed", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef fix removed", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
     v.remove(5);
@@ -156,7 +156,7 @@ TEST_CASE("fix removed", "[IntVarRef][host]") {
 }
 
 
-TEST_CASE("removeBelow simple", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef removeBelow simple", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -168,7 +168,7 @@ TEST_CASE("removeBelow simple", "[IntVarRef][host]") {
     for (int i = 5; i < 10; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("removeBelow below min", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef removeBelow below min", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -179,7 +179,7 @@ TEST_CASE("removeBelow below min", "[IntVarRef][host]") {
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("removeBelow above max", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef removeBelow above max", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -187,7 +187,7 @@ TEST_CASE("removeBelow above max", "[IntVarRef][host]") {
 }
 
 
-TEST_CASE("removeAbove simple", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef removeAbove simple", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -199,7 +199,7 @@ TEST_CASE("removeAbove simple", "[IntVarRef][host]") {
     for (int i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
 }
 
-TEST_CASE("removeAbove above max", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef removeAbove above max", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 
@@ -210,7 +210,7 @@ TEST_CASE("removeAbove above max", "[IntVarRef][host]") {
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("removeAbove below min", "[IntVarRef][host]") {
+TEST_CASE("IntVarRef removeAbove below min", "[IntVarRef][host]") {
     Allocator allocator;
     IntVarRef v = allocator[allocator.variable(10)];
 

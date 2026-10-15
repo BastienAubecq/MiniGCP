@@ -18,18 +18,18 @@
  * @param kernel The kernel
  */
 template<typename R, typename K>
-inline std::vector<R> runOnDevice(cp::Allocator& allocator, size_t nThreads, K kernel) {
+static std::vector<R> runOnDevice(cp::Allocator& allocator, size_t nThreads, K kernel) {
     auto data = allocator.getData();
-    sycl::queue q(sycl::cpu_selector_v, { sycl::property::queue::in_order() });
+    sycl::queue q(sycl::gpu_selector_v, { sycl::property::queue::in_order() });
     std::array<std::byte*, 3> deviceData{};
     for (size_t i = 0; i < data.size(); i++) {
         if (!data[i].empty()) {
-            deviceData[i] = reinterpret_cast<std::byte*>(sycl::malloc_device(data[i].size(), q));
+            deviceData[i] = sycl::malloc_device<std::byte>(data[i].size(), q);
             q.memcpy(deviceData[i], data[i].data(), data[i].size()).wait();
         }
     }
     uint32_t temporarySize = allocator.getTemporarySize();
-    R* deviceResults = (R*)sycl::malloc_device(nThreads * sizeof(R), q);
+    R* deviceResults = sycl::malloc_device<R>(nThreads, q);
 
     q.submit([=](sycl::handler& h) {
         sycl::stream error(8192, 1024, h);

@@ -7,51 +7,57 @@
 using namespace cp;
 using namespace std;
 
-TEST_CASE("unfixed variable", "[FirstFail][device]") {
+TEST_CASE("FirstFail unfixed variable", "[FirstFail][device]") {
     Allocator allocator;
     IntVarIdx fixed = allocator.variable(1);
     IntVarIdx selected = allocator.variable(2);
     vector<IntVarIdx> variables{fixed, selected};
     FirstFail strategy(allocator.array<Scope::global, IntVarIdx>(variables));
 
-    REQUIRE(runOnDevice<char>(allocator, 1, [=](Context ctx) {
+    bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
         optional<FixRemove> decision = strategy.split(ctx);
         if (!decision) return false;
         decision->applyLeft(ctx);
         return true;
-    })[0]);
+    })[0];
+
+    REQUIRE(d);
     REQUIRE(allocator[selected].fixed());
 }
 
-TEST_CASE("smallest domain", "[FirstFail][device]") {
+TEST_CASE("FirstFail smallest domain", "[FirstFail][device]") {
     Allocator allocator;
     IntVarIdx large = allocator.variable(10);
     IntVarIdx small = allocator.variable(3);
     vector<IntVarIdx> variables{large, small};
     FirstFail strategy(allocator.array<Scope::global, IntVarIdx>(variables));
 
-    REQUIRE(runOnDevice<char>(allocator, 1, [=](Context ctx) {
+    bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
         optional<FixRemove> decision = strategy.split(ctx);
         if (!decision) return false;
         decision->applyLeft(ctx);
         return true;
-    })[0]);
+    })[0];
+
+    REQUIRE(d);
     REQUIRE(allocator[small].fixed());
 }
 
-TEST_CASE("all fixed", "[FirstFail][device]") {
+TEST_CASE("FirstFail all fixed", "[FirstFail][device]") {
     Allocator allocator;
     IntVarIdx first = allocator.variable(1);
     IntVarIdx second = allocator.variable(1);
     vector<IntVarIdx> variables{first, second};
     FirstFail strategy(allocator.array<Scope::global, IntVarIdx>(variables));
 
-    REQUIRE_FALSE(runOnDevice<char>(allocator, 1, [=](Context ctx) {
+    bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
         return strategy.split(ctx).has_value();
-    })[0]);
+    })[0];
+
+    REQUIRE_FALSE(d);
 }
 
-TEST_CASE("concurrent few variables", "[FirstFail][device][concurrent]") {
+TEST_CASE("FirstFail concurrent few variables", "[FirstFail][device][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -60,16 +66,18 @@ TEST_CASE("concurrent few variables", "[FirstFail][device][concurrent]") {
     allocator[variables[5]].removeBelow(5);
     FirstFail strategy(allocator.array<Scope::global, IntVarIdx>(variables));
 
-    REQUIRE(runOnDevice<char>(allocator, 16, [=](Context ctx) {
+    bool d = runOnDevice<char>(allocator, 16, [=](Context ctx) {
         optional<FixRemove> decision = strategy.split(ctx);
         if (!decision) return false;
-        decision->applyLeft(ctx);
+        if (ctx.item.get_local_id(0) == 0) decision->applyLeft(ctx);
         return true;
-    })[0]);
+    })[0];
+
+    REQUIRE(d);
     REQUIRE(allocator[variables[5]].fixed());
 }
 
-TEST_CASE("concurrent many variables", "[FirstFail][device][concurrent]") {
+TEST_CASE("FirstFail concurrent many variables", "[FirstFail][device][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 100; i++) {
@@ -78,11 +86,13 @@ TEST_CASE("concurrent many variables", "[FirstFail][device][concurrent]") {
     allocator[variables[5]].removeBelow(5);
     FirstFail strategy(allocator.array<Scope::global, IntVarIdx>(variables));
 
-    REQUIRE(runOnDevice<char>(allocator, 16, [=](Context ctx) {
+    bool d = runOnDevice<char>(allocator, 16, [=](Context ctx) {
         optional<FixRemove> decision = strategy.split(ctx);
         if (!decision) return false;
         decision->applyLeft(ctx);
         return true;
-    })[0]);
+    })[0];
+
+    REQUIRE(d);
     REQUIRE(allocator[variables[5]].fixed());
 }

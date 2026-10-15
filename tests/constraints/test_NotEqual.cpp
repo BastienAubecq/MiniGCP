@@ -6,46 +6,52 @@
 
 using namespace cp;
 
-TEST_CASE("neither fixed", "[NotEqual][device]") {
+TEST_CASE("NotEqual neither fixed", "[NotEqual][device]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(3);
     IntVarIdx y = allocator.variable(3);
     NotEqual constraint(x, y);
 
-    REQUIRE(runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
+    DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
-    })[0] == DomainChange::none);
+    })[0];
+
+    REQUIRE(c == DomainChange::none);
     REQUIRE(allocator[x].size() == 3);
     REQUIRE(allocator[y].size() == 3);
 }
 
-TEST_CASE("first fixed", "[NotEqual][device]") {
+TEST_CASE("NotEqual first fixed", "[NotEqual][device]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(2);
     IntVarIdx y = allocator.variable(1);
     NotEqual constraint(x, y);
 
-    REQUIRE(runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
+    DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
-    })[0] == DomainChange::changed);
+    })[0];
+
+    REQUIRE(c == DomainChange::changed);
     REQUIRE(allocator[x].size() == 1);
     REQUIRE(allocator[x].min() == 1);
 }
 
-TEST_CASE("second fixed", "[NotEqual][device]") {
+TEST_CASE("NotEqual second fixed", "[NotEqual][device]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(1);
     IntVarIdx y = allocator.variable(2);
     NotEqual constraint(x, y);
 
-    REQUIRE(runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
+    DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
-    })[0] == DomainChange::changed);
+    })[0];
+
+    REQUIRE(c == DomainChange::changed);
     REQUIRE(allocator[y].size() == 1);
     REQUIRE(allocator[y].min() == 1);
 }
 
-TEST_CASE("both fixed", "[NotEqual][device]") {
+TEST_CASE("NotEqual both fixed", "[NotEqual][device]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(2);
     IntVarIdx y = allocator.variable(2);
@@ -53,18 +59,22 @@ TEST_CASE("both fixed", "[NotEqual][device]") {
     allocator[y].fix(1);
     NotEqual constraint(x, y);
 
-    REQUIRE(runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
+    DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
-    })[0] == DomainChange::none);
+    })[0];
+
+    REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("inconsistency", "[NotEqual][device]") {
+TEST_CASE("NotEqual inconsistency", "[NotEqual][device]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(1);
     IntVarIdx y = allocator.variable(1);
     NotEqual constraint(x, y);
 
-    REQUIRE((runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
+    DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
-    })[0] & DomainChange::inconsistency) == DomainChange::inconsistency);
+    })[0];
+
+    REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
