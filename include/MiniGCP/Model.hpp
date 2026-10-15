@@ -28,13 +28,29 @@ namespace cp {
          * @brief Allocate an array
          * @tparam scope Scope of the array
          * @tparam T Type of elements in the array
+         * @param size Number of elements in the array
+         * @param alignment Alignment of the array
+         * @return Index of the array
+         */
+        template<Scope scope, typename T>
+        ArrayIdx<scope, T> array(uint32_t size, size_t alignment = alignof(T)) {
+            return { allocate<scope, T>(size, alignment), size };
+        }
+
+        /**
+         * @brief Allocate an array
+         * @tparam scope Scope of the array
+         * @tparam T Type of elements in the array
          * @param values Initial values in the array
          * @param alignment Alignment of the array
          * @return Index of the array
          */
         template<Scope scope, typename T>
         ArrayIdx<scope, T> array(std::span<T const> values, size_t alignment = alignof(T)) {
-            return { allocate<scope, T>(values, alignment), static_cast<uint32_t>(values.size()) };
+            uint32_t size = static_cast<uint32_t>(values.size());
+            uint32_t index = allocate<scope, T>(size, alignment);
+            std::copy(values.begin(), values.end(), getData<scope, T>(index));
+            return { index, size };
         }
 
         /**
@@ -47,7 +63,9 @@ namespace cp {
          */
         template<Scope scope, typename T>
         ValueIdx<scope, T> value(T value, size_t alignment = alignof(T)) {
-            return { allocate<scope, T>(std::span(&value, 1), alignment) };
+            uint32_t index = allocate<scope, T>(1, alignment);
+            *getData<scope, T>(index) = value;
+            return { index };
         }
 
         /**
@@ -75,24 +93,25 @@ namespace cp {
          */
         IntVarIdx variable(int32_t size) {
             if (size <= 0) throw std::invalid_argument("size must be strictly positive");
-            std::vector<int32_t> var;
+            int32_t nFull = size / 32;
+            int32_t remaining = size % 32;
+            uint32_t index = allocate<Scope::state, int32_t>(3 + nFull + (remaining > 0));
+            int32_t* var = getData<Scope::state, int32_t>(index);
 
             // Add min, max, size
-            var.push_back(0);
-            var.push_back(size - 1);
-            var.push_back(size);
+            var[0] = 0;
+            var[1] = size - 1;
+            var[2] = size;
 
             // Add bits
-            int32_t nFull = size / 32;
             for (int32_t i = 0; i < nFull; i++) {
-                var.push_back(-1);
+                var[3 + i] = -1;
             }
-            int32_t remaining = size % 32;
             if (remaining > 0) {
-                var.push_back(((int32_t)1 << remaining) - 1);
+                var[3 + nFull] = ((int32_t)1 << remaining) - 1;
             }
 
-            return IntVarIdx(allocate<Scope::state, int32_t>(var), 0);
+            return IntVarIdx(index, 0);
         }
 
         /**
@@ -118,17 +137,18 @@ namespace cp {
                 if (v < min) min = v;
                 if (v > max) max = v;
             }
-            std::vector<int32_t> var;
+            int32_t nWords = (max - min) / 32 + 1;
+            uint32_t index = allocate<Scope::state, int32_t>(3 + nWords);
+            int32_t* var = getData<Scope::state, int32_t>(index);
 
             // Add min, max, size
-            var.push_back(0);
-            var.push_back(max - min);
-            var.push_back(values.size());
+            var[0] = 0;
+            var[1] = max - min;
+            var[2] = values.size();
 
             // Add empty bits
-            int32_t nWords = (max - min) / 32 + 1;
             for (int32_t i = 0; i < nWords; i++) {
-                var.push_back(0);
+                var[3 + i] = 0;
             }
 
             // Set bits corresponding to values
@@ -137,7 +157,7 @@ namespace cp {
                 var[3 + v / 32] |= (int32_t)1 << v % 32;
             }
 
-            return IntVarIdx(allocate<Scope::state, int32_t>(var), min);
+            return IntVarIdx(index, min);
         }
 
 
@@ -158,7 +178,7 @@ namespace cp {
          * The reference is only valid until the next allocation.
          */
         template<Scope scope, typename T>
-        std::span<T> operator[](ArrayIdx<scope, T> idx) {
+        T* operator[](ArrayIdx<scope, T> idx) {
             return idx.get(std::get<(int)scope>(data).data());
         }
 
@@ -193,16 +213,15 @@ namespace cp {
          * @brief Allocate an array
          * @tparam scope Scope of the array
          * @tparam T Type of elements in the array
-         * @param data The vector
-         * @param values Initial values in the array
+         * @param size Number of elements in the array
          * @param alignment Alignment of the array
          * @return Index of the array
          */
         template<Scope scope, typename T>
-        uint32_t allocate(std::span<const T> values, size_t alignment = alignof(T)) {
+        uint32_t allocate(uint32_t size, size_t alignment = alignof(T)) {
             std::vector<std::byte>& d = std::get<(int)scope>(data);
             uint32_t index = d.size();
-            size_t arraySize = values.size() * sizeof(T);
+            size_t arraySize = size * sizeof(T);
             size_t mod = d.size() % alignment;
             if (mod > 0) { // Add padding to align new array
                 arraySize += alignment - mod;
@@ -212,8 +231,19 @@ namespace cp {
                 throw std::range_error("Allocated size exceeds 32-bit integer range");
             }
             d.resize(d.size() + arraySize);
-            std::copy(values.begin(), values.end(), reinterpret_cast<T*>(d.data() + index));
             return index;
+        }
+
+        /**
+         * @brief Get a pointer to an array
+         * @tparam scope Scope of the array
+         * @tparam T Type of elements in the array
+         * @param index Index of the array
+         * @return Pointer to the array
+         */
+        template<Scope scope, typename T>
+        T* getData(uint32_t index) {
+            return reinterpret_cast<T*>(std::get<(int)scope>(data).data() + index);
         }
     };
 
