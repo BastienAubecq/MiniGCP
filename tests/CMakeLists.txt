@@ -23,6 +23,7 @@ include(Catch)
 
 add_test_file(test_AllDifferentFWC constraints/test_AllDifferentFWC.cpp)
 add_test_file(test_Circuit constraints/test_Circuit.cpp)
+add_test_file(test_Element1D constraints/test_Element1D.cpp)
 add_test_file(test_NotEqual constraints/test_NotEqual.cpp)
 add_test_file(test_Sum constraints/test_Sum.cpp)
 add_test_file(test_FirstFail search/test_FirstFail.cpp)
