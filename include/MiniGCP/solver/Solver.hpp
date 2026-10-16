@@ -54,13 +54,19 @@ namespace cp {
          * @return Whether the current node is inconsistent
          */
         bool exploreCurrent(Context ctx) const {
-            if (ctx.item.get_local_id(0) == 0) {
-                statistics->addNode();
-                if (type == ProblemType::minimization) ctx[objective].removeAbove(statistics->objective - 1);
-                if (type == ProblemType::maximization) ctx[objective].removeBelow(statistics->objective + 1);
+            if (ctx.item.get_local_id(0) == 0) statistics->addNode();
+            bool inconsistent = false;
+            if (type != ProblemType::satisfaction) { // Find a better solution than the global best
+                if (ctx.item.get_local_id(0) == 0) {
+                    DomainChange change = type == ProblemType::minimization ?
+                        ctx[objective].removeAbove(statistics->objective - 1) :
+                        ctx[objective].removeBelow(statistics->objective + 1);
+                    if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) inconsistent = true;
+                }
+                inconsistent = sycl::group_broadcast(ctx.item.get_group(), inconsistent, 0);
             }
             sycl::group_barrier(ctx.item.get_group());
-            bool inconsistent = constraints.fixpoint(ctx);
+            if (!inconsistent) inconsistent = constraints.fixpoint(ctx);
             if (inconsistent && ctx.item.get_local_id(0) == 0) statistics->addFailure();
             return inconsistent;
         }
@@ -71,7 +77,6 @@ namespace cp {
          * @return Whether the current node is a solution
          */
         bool moveLeft(Context ctx) const {
-            //data.print(ctx);
             std::optional<DecisionOf<Strategy>> decision = strategy.split(ctx);
             if (decision) {
                 if (!data.push(ctx, *decision)) {
@@ -81,9 +86,10 @@ namespace cp {
                 sycl::group_barrier(ctx.item.get_group());
             }
             else {
-                int32_t obj = type == ProblemType::satisfaction ? 1 : ctx[objective].min();
+                int32_t obj = type == ProblemType::satisfaction ? 1 : ctx[objective].max();
                 data.solution(ctx, obj);
                 if (ctx.item.get_local_id(0) == 0) {
+                    //sycl::ext::oneapi::experimental::printf("Objective: %d\n", obj);
                     statistics->addSolution();
                     statistics->updateObjective(type, obj);
                 }
@@ -98,7 +104,6 @@ namespace cp {
          */
         bool moveRight(Context ctx) const {
             std::optional<DecisionOf<Strategy>> decision = data.pop(ctx);
-            //data.print(ctx);
             if (decision) {
                 if (ctx.item.get_local_id(0) == 0) decision->applyRight(ctx);
                 sycl::group_barrier(ctx.item.get_group());

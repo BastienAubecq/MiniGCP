@@ -211,7 +211,7 @@ namespace cp {
         }
 
 
-        void print(Context ctx) const {
+        /*void print(Context ctx) const {
             if (ctx.item.get_local_id(0) == 0) {
                 printf("--- State ---\n");
                 for (uint32_t i = 0; i < output.size(); i++) {
@@ -219,7 +219,7 @@ namespace cp {
                 }
                 printf("--- End State ---\n");
             }
-        }
+        }*/
 
 
     private:

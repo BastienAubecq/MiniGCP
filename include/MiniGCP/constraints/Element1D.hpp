@@ -69,6 +69,28 @@ namespace cp {
         ValueIdx<Scope::state, uint32_t> max; // Index of the index of the maximum feasible value in t
     };
 
+
+    /**
+     * @brief Add a 1D element constraint to a model and return its result
+     * @param model The model
+     * @param t Array of values
+     * @param y Index variable
+     * @return The result
+     */
+    template<Constraint... Constraints>
+    inline IntVarIdx element1D(Model<Constraints...>& model, ArrayIdx<Scope::global, int32_t> t, IntVarIdx y) {
+        int32_t min = INT32_MAX;
+        int32_t max = INT32_MIN;
+        for (uint32_t i = 0; i < t.size(); i++) {
+            int32_t v = model[t][i];
+            if (v < min) min = v;
+            if (v > max) max = v;
+        }
+        IntVarIdx z = model.variable(min, max);
+        model.constraint(Element1D(model, t, y, z));
+        return z;
+    }
+
 }
 
 #endif

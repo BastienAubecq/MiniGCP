@@ -145,6 +145,26 @@ namespace cp {
         ValueIdx<Scope::state, int32_t> sumFixed;
     };
 
+
+    /**
+     * @brief Add a sum constraint to a model and return its result
+     * @param model The model
+     * @param x Variables
+     * @return Sum of the variables
+     */
+    template<Constraint... Constraints>
+    inline IntVarIdx sum(Model<Constraints...>& model, std::span<IntVarIdx const> x) {
+        int32_t sumMin = 0;
+        int32_t sumMax = 0;
+        for (uint32_t i = 0; i < x.size(); i++) {
+            sumMin += model[x[i]].min();
+            sumMax += model[x[i]].max();
+        }
+        IntVarIdx y = model.variable(sumMin, sumMax);
+        model.constraint(Sum(model, x, y));
+        return y;
+    }
+
 }
 
 #endif

@@ -161,9 +161,9 @@ namespace cp {
         }
 
 
-        void print() const {
+        /*void print() const {
             printf("%d %d %d %b\n", ptr[0], ptr[1], ptr[2], ptr[3]);
-        }
+        }*/
 
 
     private:
