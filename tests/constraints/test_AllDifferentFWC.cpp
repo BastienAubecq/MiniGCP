@@ -9,7 +9,7 @@ using namespace cp;
 using namespace std;
 
 
-TEST_CASE("AllDifferentFWCSeq one fixed", "[AllDifferentFWCSeq][device]") {
+TEST_CASE("AllDifferentFWCSeq one fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -28,7 +28,7 @@ TEST_CASE("AllDifferentFWCSeq one fixed", "[AllDifferentFWCSeq][device]") {
     }
 }
 
-TEST_CASE("AllDifferentFWCSeq few fixed", "[AllDifferentFWCSeq][device]") {
+TEST_CASE("AllDifferentFWCSeq few fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -51,7 +51,7 @@ TEST_CASE("AllDifferentFWCSeq few fixed", "[AllDifferentFWCSeq][device]") {
     }
 }
 
-TEST_CASE("AllDifferentFWCSeq none fixed", "[AllDifferentFWCSeq][device]") {
+TEST_CASE("AllDifferentFWCSeq none fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -66,7 +66,7 @@ TEST_CASE("AllDifferentFWCSeq none fixed", "[AllDifferentFWCSeq][device]") {
     REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("AllDifferentFWCSeq all fixed", "[AllDifferentFWCSeq][device]") {
+TEST_CASE("AllDifferentFWCSeq all fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -81,7 +81,7 @@ TEST_CASE("AllDifferentFWCSeq all fixed", "[AllDifferentFWCSeq][device]") {
     REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("AllDifferentFWCSeq inconsistency", "[AllDifferentFWCSeq][device]") {
+TEST_CASE("AllDifferentFWCSeq inconsistency", "[AllDifferentFWCSeq]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -99,7 +99,7 @@ TEST_CASE("AllDifferentFWCSeq inconsistency", "[AllDifferentFWCSeq][device]") {
 }
 
 
-TEST_CASE("AllDifferentFWC one fixed", "[AllDifferentFWC][device]") {
+TEST_CASE("AllDifferentFWC one fixed", "[AllDifferentFWC]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -118,7 +118,7 @@ TEST_CASE("AllDifferentFWC one fixed", "[AllDifferentFWC][device]") {
     }
 }
 
-TEST_CASE("AllDifferentFWC few fixed", "[AllDifferentFWC][device]") {
+TEST_CASE("AllDifferentFWC few fixed", "[AllDifferentFWC]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -141,7 +141,7 @@ TEST_CASE("AllDifferentFWC few fixed", "[AllDifferentFWC][device]") {
     }
 }
 
-TEST_CASE("AllDifferentFWC none fixed", "[AllDifferentFWC][device]") {
+TEST_CASE("AllDifferentFWC none fixed", "[AllDifferentFWC]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -156,7 +156,7 @@ TEST_CASE("AllDifferentFWC none fixed", "[AllDifferentFWC][device]") {
     REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("AllDifferentFWC all fixed", "[AllDifferentFWC][device]") {
+TEST_CASE("AllDifferentFWC all fixed", "[AllDifferentFWC]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -171,7 +171,7 @@ TEST_CASE("AllDifferentFWC all fixed", "[AllDifferentFWC][device]") {
     REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("AllDifferentFWC inconsistency", "[AllDifferentFWC][device]") {
+TEST_CASE("AllDifferentFWC inconsistency", "[AllDifferentFWC]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -189,7 +189,7 @@ TEST_CASE("AllDifferentFWC inconsistency", "[AllDifferentFWC][device]") {
 }
 
 
-TEST_CASE("AllDifferentFWC concurrent few variables", "[AllDifferentFWC][device][concurrent]") {
+TEST_CASE("AllDifferentFWC concurrent few variables", "[AllDifferentFWC][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 10; i++) {
@@ -212,7 +212,7 @@ TEST_CASE("AllDifferentFWC concurrent few variables", "[AllDifferentFWC][device]
     }
 }
 
-TEST_CASE("AllDifferentFWC concurrent many variables", "[AllDifferentFWC][device][concurrent]") {
+TEST_CASE("AllDifferentFWC concurrent many variables", "[AllDifferentFWC][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> variables;
     for (int i = 0; i < 100; i++) {

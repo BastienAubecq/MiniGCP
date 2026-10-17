@@ -2,6 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <cmath>
+#include <random>
 #include "MiniGCP.hpp"
 
 using namespace std;
@@ -16,6 +18,24 @@ public:
     uint32_t n;
     vector<int32_t> distances;
 
+    TSPInstance(uint32_t n, uint32_t size) : n(n), distances(n * n) {
+        mt19937 generator(0);
+        uniform_int_distribution<uint32_t> coordinate(0, size);
+        vector<pair<uint32_t, uint32_t>> positions;
+        positions.reserve(n);
+        for (uint32_t i = 0; i < n; i++) {
+            positions.emplace_back(coordinate(generator), coordinate(generator));
+        }
+
+        for (uint32_t i = 0; i < n; i++) {
+            for (uint32_t j = 0; j < n; j++) {
+                double dx = static_cast<double>(positions[i].first) - positions[j].first;
+                double dy = static_cast<double>(positions[i].second) - positions[j].second;
+                distances[i * n + j] = static_cast<int32_t>(lround(hypot(dx, dy)));
+            }
+        }
+    }
+
     explicit TSPInstance(char const* path) {
         ifstream input(path);
         input >> n;
@@ -28,20 +48,19 @@ public:
         }
     }
 
-    int32_t distance(uint32_t i, uint32_t j) {
+    int32_t distance(uint32_t i, uint32_t j) const {
         return distances[i * n + j];
     }
 };
 
 
 /**
- * @brief Solve a TSP instance
+ * @brief Get a solver for a TSP instance
  * @param instance The instance
  * @param params Device parameters
- * @param solution Successor of each node in the best solution
- * @return Search statistics
+ * @return The solver
  */
-static SearchStatistics solve(TSPInstance const& instance, DeviceParams params, vector<int32_t>& solution) {
+static auto getSolver(TSPInstance const& instance, DeviceParams params) {
     Model<AllDifferentFWC, Circuit, Element1D, Sum> model(ProblemType::minimization);
     uint32_t n = instance.n;
 
@@ -61,16 +80,11 @@ static SearchStatistics solve(TSPInstance const& instance, DeviceParams params, 
     model.objective = sum(model, cost);
 
     FirstFail strategy(model.output);
-    auto solver = DFSSolver(model, strategy, params);
-    solver.solve(noLimit);
-
-    for (uint32_t i = 0; i < n; i++) {
-        solution.push_back(solver.getSolution()[i]);
-    }
-    return solver.getStatistics();
+    return DFSSolver(model, strategy, params);
 }
 
 
+#ifndef NO_MAIN
 int main(int argc, char const* const* argv) {
     if (argc != 2) {
         cerr << "Arguments: input path" << endl;
@@ -79,11 +93,13 @@ int main(int argc, char const* const* argv) {
 
     TSPInstance instance(argv[1]);
     DeviceParams params(sycl::cpu_selector_v, 1, 1);
-    vector<int32_t> solution;
-    SearchStatistics stats = solve(instance, params, solution);
-    cout << stats << endl;
-    for (int32_t s : solution) {
+    auto solver = getSolver(instance, params);
+    solver.solve(noLimit);
+
+    cout << solver.getStatistics() << endl;
+    for (int32_t s : solver.getSolution()) {
         cout << s << " ";
     }
     cout << endl;
 }
+#endif

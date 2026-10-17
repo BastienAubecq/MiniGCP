@@ -6,7 +6,7 @@
 
 using namespace cp;
 
-TEST_CASE("FixRemove fix branch", "[FixRemove][device]") {
+TEST_CASE("FixRemove fix branch", "[FixRemove]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(5);
     FixRemove decision(idx, 3);
@@ -19,7 +19,7 @@ TEST_CASE("FixRemove fix branch", "[FixRemove][device]") {
     REQUIRE(allocator[idx].min() == 3);
 }
 
-TEST_CASE("FixRemove remove branch", "[FixRemove][device]") {
+TEST_CASE("FixRemove remove branch", "[FixRemove]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(5);
     FixRemove decision(idx, 3);

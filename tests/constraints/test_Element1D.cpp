@@ -9,7 +9,7 @@ using namespace cp;
 using namespace std;
 
 
-TEST_CASE("Element1D update z", "[Element1D][device]") {
+TEST_CASE("Element1D update z", "[Element1D]") {
     Allocator allocator;
     auto t = allocator.array<Scope::global, int32_t>(array { 4, 3, 1, 2 });
     IntVarIdx y = allocator.variable(array { 1, 3 });
@@ -26,7 +26,7 @@ TEST_CASE("Element1D update z", "[Element1D][device]") {
     REQUIRE(allocator[y].size() == 2);
 }
 
-TEST_CASE("Element1D update y", "[Element1D][device]") {
+TEST_CASE("Element1D update y", "[Element1D]") {
     Allocator allocator;
     auto t = allocator.array<Scope::global, int32_t>(array { 4, 3, 1, 2 });
     IntVarIdx y = allocator.variable(4);
@@ -44,7 +44,7 @@ TEST_CASE("Element1D update y", "[Element1D][device]") {
     REQUIRE(allocator[y].contains(3));
 }
 
-TEST_CASE("Element1D update y and z", "[Element1D][device]") {
+TEST_CASE("Element1D update y and z", "[Element1D]") {
     Allocator allocator;
     array<int32_t, 4> t { 4, 3, 1, 2 };
     IntVarIdx y = allocator.variable(array { 0, 2, 3 });
@@ -63,7 +63,7 @@ TEST_CASE("Element1D update y and z", "[Element1D][device]") {
     REQUIRE_FALSE(allocator[z].contains(3));
 }
 
-TEST_CASE("Element1D no change", "[Element1D][device]") {
+TEST_CASE("Element1D no change", "[Element1D]") {
     Allocator allocator;
     auto t = allocator.array<Scope::global, int32_t>(array { 4, 3, 1, 2 });
     IntVarIdx y = allocator.variable(array { 1, 3 });
@@ -77,7 +77,7 @@ TEST_CASE("Element1D no change", "[Element1D][device]") {
     REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("Element1D inconsistency", "[Element1D][device]") {
+TEST_CASE("Element1D inconsistency", "[Element1D]") {
     Allocator allocator;
     auto t = allocator.array<Scope::global, int32_t>(array { 4, 3, 1, 2 });
     IntVarIdx y = allocator.variable(array { 1, 3 });

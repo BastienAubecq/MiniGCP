@@ -14,7 +14,7 @@ using namespace std;
 using namespace cp;
 
 
-TEST_CASE("AtomicIntVarRef remove simple", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef remove simple", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -31,7 +31,7 @@ TEST_CASE("AtomicIntVarRef remove simple", "[AtomicIntVarRef][device]") {
     for (int32_t i = 6; i < 10; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntVarRef remove outside bounds", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef remove outside bounds", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -45,7 +45,7 @@ TEST_CASE("AtomicIntVarRef remove outside bounds", "[AtomicIntVarRef][device]") 
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("AtomicIntVarRef remove already removed", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef remove already removed", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -60,7 +60,7 @@ TEST_CASE("AtomicIntVarRef remove already removed", "[AtomicIntVarRef][device]")
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("AtomicIntVarRef remove min", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef remove min", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -76,7 +76,7 @@ TEST_CASE("AtomicIntVarRef remove min", "[AtomicIntVarRef][device]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("AtomicIntVarRef remove max", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef remove max", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -92,7 +92,7 @@ TEST_CASE("AtomicIntVarRef remove max", "[AtomicIntVarRef][device]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("AtomicIntVarRef remove last", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef remove last", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(1);
 
@@ -105,7 +105,7 @@ TEST_CASE("AtomicIntVarRef remove last", "[AtomicIntVarRef][device]") {
 }
 
 
-TEST_CASE("AtomicIntVarRef fix simple", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef fix simple", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -125,7 +125,7 @@ TEST_CASE("AtomicIntVarRef fix simple", "[AtomicIntVarRef][device]") {
     for (int32_t i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntVarRef fix already fixed", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef fix already fixed", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(1);
     IntVarRef v = allocator[idx];
@@ -139,7 +139,7 @@ TEST_CASE("AtomicIntVarRef fix already fixed", "[AtomicIntVarRef][device]") {
     REQUIRE(v.fixed());
 }
 
-TEST_CASE("AtomicIntVarRef fix outside bounds", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef fix outside bounds", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
 
@@ -151,7 +151,7 @@ TEST_CASE("AtomicIntVarRef fix outside bounds", "[AtomicIntVarRef][device]") {
     REQUIRE(c == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntVarRef fix removed", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef fix removed", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -166,7 +166,7 @@ TEST_CASE("AtomicIntVarRef fix removed", "[AtomicIntVarRef][device]") {
 }
 
 
-TEST_CASE("AtomicIntVarRef removeBelow simple", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef removeBelow simple", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -184,7 +184,7 @@ TEST_CASE("AtomicIntVarRef removeBelow simple", "[AtomicIntVarRef][device]") {
     for (int i = 5; i < 10; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntVarRef removeBelow below min", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef removeBelow below min", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -200,7 +200,7 @@ TEST_CASE("AtomicIntVarRef removeBelow below min", "[AtomicIntVarRef][device]") 
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("AtomicIntVarRef removeBelow above max", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef removeBelow above max", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
 
@@ -213,7 +213,7 @@ TEST_CASE("AtomicIntVarRef removeBelow above max", "[AtomicIntVarRef][device]") 
 }
 
 
-TEST_CASE("AtomicIntVarRef removeAbove simple", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef removeAbove simple", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -231,7 +231,7 @@ TEST_CASE("AtomicIntVarRef removeAbove simple", "[AtomicIntVarRef][device]") {
     for (int i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntVarRef removeAbove above max", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef removeAbove above max", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
     IntVarRef v = allocator[idx];
@@ -247,7 +247,7 @@ TEST_CASE("AtomicIntVarRef removeAbove above max", "[AtomicIntVarRef][device]") 
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("AtomicIntVarRef removeAbove below min", "[AtomicIntVarRef][device]") {
+TEST_CASE("AtomicIntVarRef removeAbove below min", "[AtomicIntVarRef]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(10);
 
@@ -260,7 +260,7 @@ TEST_CASE("AtomicIntVarRef removeAbove below min", "[AtomicIntVarRef][device]") 
 }
 
 
-TEST_CASE("AtomicIntVarRef concurrent remove", "[AtomicIntVarRef][device][concurrent]") {
+TEST_CASE("AtomicIntVarRef concurrent remove", "[AtomicIntVarRef][concurrent]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(80);
     IntVarRef v = allocator[idx];
@@ -278,7 +278,7 @@ TEST_CASE("AtomicIntVarRef concurrent remove", "[AtomicIntVarRef][device][concur
     for (int i = 64; i < 80; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntVarRef concurrent remove all", "[AtomicIntVarRef][device][concurrent]") {
+TEST_CASE("AtomicIntVarRef concurrent remove all", "[AtomicIntVarRef][concurrent]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(64);
 
@@ -290,7 +290,7 @@ TEST_CASE("AtomicIntVarRef concurrent remove all", "[AtomicIntVarRef][device][co
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntVarRef concurrent fix same", "[AtomicIntVarRef][device][concurrent]") {
+TEST_CASE("AtomicIntVarRef concurrent fix same", "[AtomicIntVarRef][concurrent]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(80);
     IntVarRef v = allocator[idx];
@@ -307,7 +307,7 @@ TEST_CASE("AtomicIntVarRef concurrent fix same", "[AtomicIntVarRef][device][conc
     REQUIRE(v.fixed());
 }
 
-TEST_CASE("AtomicIntVarRef concurrent fix different", "[AtomicIntVarRef][device][concurrent]") {
+TEST_CASE("AtomicIntVarRef concurrent fix different", "[AtomicIntVarRef][concurrent]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(80);
 
@@ -319,7 +319,7 @@ TEST_CASE("AtomicIntVarRef concurrent fix different", "[AtomicIntVarRef][device]
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntVarRef concurrent removeBelow", "[AtomicIntVarRef][device][concurrent]") {
+TEST_CASE("AtomicIntVarRef concurrent removeBelow", "[AtomicIntVarRef][concurrent]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(80);
     IntVarRef v = allocator[idx];
@@ -335,7 +335,7 @@ TEST_CASE("AtomicIntVarRef concurrent removeBelow", "[AtomicIntVarRef][device][c
     REQUIRE(v.size() == 12);
 }
 
-TEST_CASE("AtomicIntVarRef concurrent removeBelow all", "[AtomicIntVarRef][device][concurrent]") {
+TEST_CASE("AtomicIntVarRef concurrent removeBelow all", "[AtomicIntVarRef][concurrent]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(63);
 
@@ -347,7 +347,7 @@ TEST_CASE("AtomicIntVarRef concurrent removeBelow all", "[AtomicIntVarRef][devic
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntVarRef concurrent removeAbove", "[AtomicIntVarRef][device][concurrent]") {
+TEST_CASE("AtomicIntVarRef concurrent removeAbove", "[AtomicIntVarRef][concurrent]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(80);
     IntVarRef v = allocator[idx];
@@ -363,7 +363,7 @@ TEST_CASE("AtomicIntVarRef concurrent removeAbove", "[AtomicIntVarRef][device][c
     REQUIRE(v.size() == 6);
 }
 
-TEST_CASE("AtomicIntVarRef concurrent removeAbove all", "[AtomicIntVarRef][device][concurrent]") {
+TEST_CASE("AtomicIntVarRef concurrent removeAbove all", "[AtomicIntVarRef][concurrent]") {
     Allocator allocator;
     IntVarIdx idx = allocator.variable(6, 80);
 

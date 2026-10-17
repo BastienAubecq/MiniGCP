@@ -10,10 +10,7 @@ find_package(Catch2 3 REQUIRED)
 
 function(add_test_file target source)
     add_executable(${target} ${source})
-    target_include_directories(${target} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../include
-    )
+    target_include_directories(${target} PRIVATE . ../include ../examples)
     target_link_libraries(${target} PRIVATE Catch2::Catch2WithMain)
     catch_discover_tests(${target})
 endfunction()
@@ -26,6 +23,8 @@ add_test_file(test_Circuit constraints/test_Circuit.cpp)
 add_test_file(test_Element1D constraints/test_Element1D.cpp)
 add_test_file(test_NotEqual constraints/test_NotEqual.cpp)
 add_test_file(test_Sum constraints/test_Sum.cpp)
+add_test_file(test_NQueens examples/test_NQueens.cpp)
+add_test_file(test_TSP examples/test_TSP.cpp)
 add_test_file(test_FirstFail search/test_FirstFail.cpp)
 add_test_file(test_FixRemove search/test_FixRemove.cpp)
 add_test_file(test_AtomicIntVarRef state/test_AtomicIntVarRef.cpp)

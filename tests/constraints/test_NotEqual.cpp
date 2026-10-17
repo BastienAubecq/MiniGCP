@@ -6,7 +6,7 @@
 
 using namespace cp;
 
-TEST_CASE("NotEqual neither fixed", "[NotEqual][device]") {
+TEST_CASE("NotEqual neither fixed", "[NotEqual]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(3);
     IntVarIdx y = allocator.variable(3);
@@ -21,7 +21,7 @@ TEST_CASE("NotEqual neither fixed", "[NotEqual][device]") {
     REQUIRE(allocator[y].size() == 3);
 }
 
-TEST_CASE("NotEqual first fixed", "[NotEqual][device]") {
+TEST_CASE("NotEqual first fixed", "[NotEqual]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(2);
     IntVarIdx y = allocator.variable(1);
@@ -36,7 +36,7 @@ TEST_CASE("NotEqual first fixed", "[NotEqual][device]") {
     REQUIRE(allocator[x].min() == 1);
 }
 
-TEST_CASE("NotEqual second fixed", "[NotEqual][device]") {
+TEST_CASE("NotEqual second fixed", "[NotEqual]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(1);
     IntVarIdx y = allocator.variable(2);
@@ -51,7 +51,7 @@ TEST_CASE("NotEqual second fixed", "[NotEqual][device]") {
     REQUIRE(allocator[y].min() == 1);
 }
 
-TEST_CASE("NotEqual both fixed", "[NotEqual][device]") {
+TEST_CASE("NotEqual both fixed", "[NotEqual]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(2);
     IntVarIdx y = allocator.variable(2);
@@ -66,7 +66,7 @@ TEST_CASE("NotEqual both fixed", "[NotEqual][device]") {
     REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("NotEqual inconsistency", "[NotEqual][device]") {
+TEST_CASE("NotEqual inconsistency", "[NotEqual]") {
     Allocator allocator;
     IntVarIdx x = allocator.variable(1);
     IntVarIdx y = allocator.variable(1);

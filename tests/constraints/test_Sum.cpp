@@ -9,7 +9,7 @@ using namespace cp;
 using namespace std;
 
 
-TEST_CASE("SumSeq update y", "[SumSeq][device]") {
+TEST_CASE("SumSeq update y", "[SumSeq]") {
     Allocator allocator;
     vector<IntVarIdx> x {
         allocator.variable(-1, 2),
@@ -32,7 +32,7 @@ TEST_CASE("SumSeq update y", "[SumSeq][device]") {
     REQUIRE(allocator[y].size() == 10);
 }
 
-TEST_CASE("SumSeq update one x_i", "[SumSeq][device]") {
+TEST_CASE("SumSeq update one x_i", "[SumSeq]") {
     Allocator allocator;
     vector<IntVarIdx> x {
         allocator.variable(-1, 2),
@@ -55,7 +55,7 @@ TEST_CASE("SumSeq update one x_i", "[SumSeq][device]") {
     REQUIRE(allocator[x[1]].size() == 10);
 }
 
-TEST_CASE("SumSeq no change", "[SumSeq][device]") {
+TEST_CASE("SumSeq no change", "[SumSeq]") {
     Allocator allocator;
     vector<IntVarIdx> x {
         allocator.variable(-1, 2),
@@ -72,7 +72,7 @@ TEST_CASE("SumSeq no change", "[SumSeq][device]") {
     REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("SumSeq inconsistency", "[SumSeq][device]") {
+TEST_CASE("SumSeq inconsistency", "[SumSeq]") {
     Allocator allocator;
     vector<IntVarIdx> x {
         allocator.variable(-1, 2),
@@ -89,7 +89,7 @@ TEST_CASE("SumSeq inconsistency", "[SumSeq][device]") {
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("SumSeq update all x_i", "[SumSeq][device]") {
+TEST_CASE("SumSeq update all x_i", "[SumSeq]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 10; i++) {
@@ -112,7 +112,7 @@ TEST_CASE("SumSeq update all x_i", "[SumSeq][device]") {
 }
 
 
-TEST_CASE("Sum update y", "[Sum][device]") {
+TEST_CASE("Sum update y", "[Sum]") {
     Allocator allocator;
     vector<IntVarIdx> x {
         allocator.variable(-1, 2),
@@ -135,7 +135,7 @@ TEST_CASE("Sum update y", "[Sum][device]") {
     REQUIRE(allocator[y].size() == 10);
 }
 
-TEST_CASE("Sum update one x_i", "[Sum][device]") {
+TEST_CASE("Sum update one x_i", "[Sum]") {
     Allocator allocator;
     vector<IntVarIdx> x {
         allocator.variable(-1, 2),
@@ -158,7 +158,7 @@ TEST_CASE("Sum update one x_i", "[Sum][device]") {
     REQUIRE(allocator[x[1]].size() == 10);
 }
 
-TEST_CASE("Sum no change", "[Sum][device]") {
+TEST_CASE("Sum no change", "[Sum]") {
     Allocator allocator;
     vector<IntVarIdx> x {
         allocator.variable(-1, 2),
@@ -175,7 +175,7 @@ TEST_CASE("Sum no change", "[Sum][device]") {
     REQUIRE(c == DomainChange::none);
 }
 
-TEST_CASE("Sum inconsistency", "[Sum][device]") {
+TEST_CASE("Sum inconsistency", "[Sum]") {
     Allocator allocator;
     vector<IntVarIdx> x {
         allocator.variable(-1, 2),
@@ -192,7 +192,7 @@ TEST_CASE("Sum inconsistency", "[Sum][device]") {
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("Sum update all x_i", "[Sum][device]") {
+TEST_CASE("Sum update all x_i", "[Sum]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 10; i++) {
@@ -215,7 +215,7 @@ TEST_CASE("Sum update all x_i", "[Sum][device]") {
 }
 
 
-TEST_CASE("Sum concurrent few variables", "[Sum][device][concurrent]") {
+TEST_CASE("Sum concurrent few variables", "[Sum][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 10; i++) {
@@ -237,7 +237,7 @@ TEST_CASE("Sum concurrent few variables", "[Sum][device][concurrent]") {
     REQUIRE(allocator[y].size() == 4);
 }
 
-TEST_CASE("Sum concurrent many variables", "[Sum][device][concurrent]") {
+TEST_CASE("Sum concurrent many variables", "[Sum][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 100; i++) {

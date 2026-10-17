@@ -9,7 +9,7 @@ using namespace cp;
 using namespace std;
 
 
-TEST_CASE("CircuitSeq one cycle", "[CircuitSeq][device]") {
+TEST_CASE("CircuitSeq one cycle", "[CircuitSeq]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 10; i++) {
@@ -34,7 +34,7 @@ TEST_CASE("CircuitSeq one cycle", "[CircuitSeq][device]") {
     REQUIRE(allocator[x[9]].size() == 9);
 }
 
-TEST_CASE("CircuitSeq few cycles", "[CircuitSeq][device]") {
+TEST_CASE("CircuitSeq few cycles", "[CircuitSeq]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 10; i++) {
@@ -59,7 +59,7 @@ TEST_CASE("CircuitSeq few cycles", "[CircuitSeq][device]") {
     REQUIRE(allocator[x[6]].size() == 9);
 }
 
-TEST_CASE("CircuitSeq full cycle", "[CircuitSeq][device]") {
+TEST_CASE("CircuitSeq full cycle", "[CircuitSeq]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 9; i++) {
@@ -76,7 +76,7 @@ TEST_CASE("CircuitSeq full cycle", "[CircuitSeq][device]") {
 }
 
 
-TEST_CASE("Circuit one cycle", "[Circuit][device]") {
+TEST_CASE("Circuit one cycle", "[Circuit]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 10; i++) {
@@ -101,7 +101,7 @@ TEST_CASE("Circuit one cycle", "[Circuit][device]") {
     REQUIRE(allocator[x[9]].size() == 9);
 }
 
-TEST_CASE("Circuit few cycles", "[Circuit][device]") {
+TEST_CASE("Circuit few cycles", "[Circuit]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 10; i++) {
@@ -126,7 +126,7 @@ TEST_CASE("Circuit few cycles", "[Circuit][device]") {
     REQUIRE(allocator[x[6]].size() == 9);
 }
 
-TEST_CASE("Circuit full cycle", "[Circuit][device]") {
+TEST_CASE("Circuit full cycle", "[Circuit]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 9; i++) {
@@ -143,7 +143,7 @@ TEST_CASE("Circuit full cycle", "[Circuit][device]") {
 }
 
 
-TEST_CASE("Circuit concurrent few variables", "[Circuit][device][concurrent]") {
+TEST_CASE("Circuit concurrent few variables", "[Circuit][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 9; i++) {
@@ -164,7 +164,7 @@ TEST_CASE("Circuit concurrent few variables", "[Circuit][device][concurrent]") {
     REQUIRE_FALSE(allocator[x[9]].contains(1));
 }
 
-TEST_CASE("Circuit concurrent many variables", "[Circuit][device][concurrent]") {
+TEST_CASE("Circuit concurrent many variables", "[Circuit][concurrent]") {
     Allocator allocator;
     vector<IntVarIdx> x;
     for (int i = 0; i < 99; i++) {

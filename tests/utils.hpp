@@ -5,9 +5,18 @@
 #include <array>
 #include <vector>
 #include <span>
+#include <functional>
 #include "sycl/sycl.hpp"
 #include "MiniGCP/Model.hpp"
 #include "MiniGCP/solver/Context.hpp"
+#include "MiniGCP/solver/DeviceParams.hpp"
+
+
+/**
+ * @brief Default device parameters for all tests
+ */
+inline cp::DeviceParams testParams(sycl::gpu_selector_v, 64, 1);
+
 
 /**
  * @brief Run a kernel with a group of threads on the device and get the result of each thread
@@ -20,7 +29,7 @@
 template<typename R, typename K>
 static std::vector<R> runOnDevice(cp::Allocator& allocator, size_t nThreads, K kernel) {
     auto data = allocator.getData();
-    sycl::queue q(sycl::gpu_selector_v, { sycl::property::queue::in_order() });
+    sycl::queue q(testParams.selector, { sycl::property::queue::in_order() });
     std::array<std::byte*, 3> deviceData{};
     for (size_t i = 0; i < data.size(); i++) {
         if (!data[i].empty()) {
