@@ -32,6 +32,10 @@ namespace cp {
             (sycl::free(std::get<Constraints*>(constraints), queue), ...);
         }
 
+        void invalidate() {
+            ((std::get<Constraints*>(constraints) = nullptr), ...);
+        }
+
 
         /**
          * @brief Propagate the constraints until a fixpoint or inconsistency is reached

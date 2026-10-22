@@ -36,11 +36,12 @@ namespace cp {
             int32_t sumMin = sumFixed;
             int32_t sumMax = sumFixed;
             for (uint32_t i = nFixed; i < this->x.size(); i++) {
-                sumMin += ctx[x[i]].min();
+                int32_t min = ctx[x[i]].min();
+                sumMin += min;
                 sumMax += ctx[x[i]].max();
                 if (ctx[x[i]].fixed()) {
                     std::swap(x[nFixed++], x[i]);
-                    sumFixed += ctx[x[i]].min();
+                    sumFixed += min;
                 }
             }
 

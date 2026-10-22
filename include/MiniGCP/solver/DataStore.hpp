@@ -42,8 +42,8 @@ namespace cp {
                 queue.get_device().get_info<sycl::info::device::local_mem_type>() == sycl::info::local_mem_type::local &&
                 localMemorySize > temporarySize + stateSize;
             
-            size_t allocLocalSize = localSize * (1 + nGroups);
-            size_t allocStateSize = stateSize * (1 + (stackSize + 1) * nGroups);
+            size_t allocLocalSize = static_cast<size_t>(localSize) * (1 + nGroups);
+            size_t allocStateSize = static_cast<size_t>(stateSize) * (1 + (stackSize + 1) * nGroups);
             if (allocLocalSize > UINT32_MAX || allocStateSize > UINT32_MAX) {
                 throw std::range_error("Allocated size exceeds 32-bit integer range");
             }
@@ -76,6 +76,15 @@ namespace cp {
             sycl::free(outputData, queue);
             sycl::free(decisions, queue);
             sycl::free(tops, queue);
+        }
+
+        void invalidate() {
+            globalData = nullptr;
+            localData = nullptr;
+            stateData = nullptr;
+            outputData = nullptr;
+            decisions = nullptr;
+            tops = nullptr;
         }
 
         

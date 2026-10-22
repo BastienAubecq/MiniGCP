@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include "sycl/sycl.hpp"
 #include "MiniGCP/Model.hpp"
 #include "MiniGCP/constraints/Constraint.hpp"
@@ -45,6 +46,12 @@ namespace cp {
             data.destroy(queue);
             constraints.destroy(queue);
             sycl::free(statistics, queue);
+        }
+
+        void invalidate() {
+            data.invalidate();
+            constraints.invalidate();
+            statistics = nullptr;
         }
 
 
@@ -144,6 +151,27 @@ namespace cp {
             solver.destroy(queue);
         }
 
+        Solver(Solver const& other) = delete;
+
+        Solver(Solver&& other) :
+            queue(std::move(other.queue)),
+            params(std::move(other.params)),
+            solver(other.solver),
+            statistics(std::move(other.statistics)),
+            solution(std::move(other.solution)) {
+            other.solver.invalidate();
+        }
+
+        Solver& operator=(Solver other) {
+            std::swap(queue, other.queue);
+            std::swap(params, other.params);
+            std::swap(solver, other.solver);
+            std::swap(statistics, other.statistics);
+            std::swap(solution, other.solution);
+            return *this;
+        }
+
+
         /**
          * @brief Get the search statistics
          */
@@ -157,7 +185,8 @@ namespace cp {
         std::span<int32_t const> getSolution() const {
             return solution;
         }
-    
+
+
     protected:
         sycl::queue queue;
         DeviceParams params;
