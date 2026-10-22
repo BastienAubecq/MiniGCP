@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
 
 namespace cp {
 
@@ -15,7 +15,7 @@ namespace cp {
      */
     class FixRemove {
     public:
-        FixRemove(IntVarIdx x, int32_t v) : x(x), v(v) {}
+        FixRemove(IntVarBitsetIdx x, int32_t v) : x(x), v(v) {}
 
         void applyLeft(Context ctx) const {
             //printf("Fix %d to %d\n", x.index, v);
@@ -32,7 +32,7 @@ namespace cp {
         }
     
     private:
-        IntVarIdx x;
+        IntVarBitsetIdx x;
         int32_t v;
     };
 

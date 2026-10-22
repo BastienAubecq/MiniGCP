@@ -64,16 +64,16 @@ static auto getSolver(TSPInstance const& instance, DeviceParams params) {
     Model<AllDifferentFWC, Circuit, Element1D, Sum> model(ProblemType::minimization);
     uint32_t n = instance.n;
 
-    vector<IntVarIdx> succ;
+    vector<IntVarBitsetIdx> succ;
     for (uint32_t i = 0; i < n; i++) {
-        succ.push_back(model.variable(n));
+        succ.push_back(model.intVarBitset(n));
     }
-    auto succArray = model.array<Scope::global, IntVarIdx>(succ);
+    auto succArray = model.array<Scope::global, IntVarBitsetIdx>(succ);
     model.constraint(AllDifferentFWC(model, succ));
     model.constraint(Circuit(model, succArray));
     model.output = succArray;
 
-    vector<IntVarIdx> cost;
+    vector<IntVarIntervalIdx> cost;
     for (uint32_t i = 0; i < n; i++) {
         cost.push_back(element1D(model, model.array<Scope::global>(span(instance.distances.data() + i * n, n)), succ[i]));
     }

@@ -8,7 +8,7 @@
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
+#include "MiniGCP/state/IntVarIntervalIdx.hpp"
 #include "MiniGCP/state/ValueIdx.hpp"
 
 namespace cp {
@@ -21,8 +21,8 @@ namespace cp {
     public:
         constexpr static bool parallel = false;
 
-        SumSeq(Allocator& allocator, std::span<IntVarIdx const> x, IntVarIdx y) :
-            x(allocator.array<Scope::local, IntVarIdx>(x)),
+        SumSeq(Allocator& allocator, std::span<IntVarIntervalIdx const> x, IntVarIntervalIdx y) :
+            x(allocator.array<Scope::local, IntVarIntervalIdx>(x)),
             y(y),
             nFixed(allocator.value<Scope::state, uint32_t>(0)),
             sumFixed(allocator.value<Scope::state, int32_t>(0)) {}
@@ -30,7 +30,7 @@ namespace cp {
         DomainChange propagate(Context ctx) const {
             uint32_t& nFixed = ctx[this->nFixed];
             int32_t& sumFixed = ctx[this->sumFixed];
-            IntVarIdx* x = ctx[this->x];
+            IntVarIntervalIdx* x = ctx[this->x];
             
             // Get sum of min and max values of x
             int32_t sumMin = sumFixed;
@@ -61,8 +61,8 @@ namespace cp {
         }
 
     private:
-        ArrayIdx<Scope::local, IntVarIdx> x;
-        IntVarIdx y;
+        ArrayIdx<Scope::local, IntVarIntervalIdx> x;
+        IntVarIntervalIdx y;
         ValueIdx<Scope::state, uint32_t> nFixed;
         ValueIdx<Scope::state, int32_t> sumFixed;
     };
@@ -77,8 +77,8 @@ namespace cp {
     public:
         constexpr static bool parallel = true;
 
-        Sum(Allocator& allocator, std::span<IntVarIdx const> x, IntVarIdx y) :
-            x(allocator.array<Scope::local, IntVarIdx>(x)),
+        Sum(Allocator& allocator, std::span<IntVarIntervalIdx const> x, IntVarIntervalIdx y) :
+            x(allocator.array<Scope::local, IntVarIntervalIdx>(x)),
             y(y),
             nFixed(allocator.value<Scope::state, uint32_t>(0)),
             sumFixed(allocator.value<Scope::state, int32_t>(0)) {}
@@ -86,7 +86,7 @@ namespace cp {
         DomainChange propagate(Context ctx) const {
             uint32_t nFixed = ctx[this->nFixed];
             int32_t sumFixed = ctx[this->sumFixed];
-            IntVarIdx* x = ctx[this->x];
+            IntVarIntervalIdx* x = ctx[this->x];
             
             // Get sum of min and max values of x
             int32_t sumMin = ctx.item.get_local_id(0) == 0 ? sumFixed : 0;
@@ -140,8 +140,8 @@ namespace cp {
         }
 
     private:
-        ArrayIdx<Scope::local, IntVarIdx> x;
-        IntVarIdx y;
+        ArrayIdx<Scope::local, IntVarIntervalIdx> x;
+        IntVarIntervalIdx y;
         ValueIdx<Scope::state, uint32_t> nFixed;
         ValueIdx<Scope::state, int32_t> sumFixed;
     };
@@ -154,14 +154,14 @@ namespace cp {
      * @return Sum of the variables
      */
     template<Constraint... Constraints>
-    inline IntVarIdx sum(Model<Constraints...>& model, std::span<IntVarIdx const> x) {
+    inline IntVarIntervalIdx sum(Model<Constraints...>& model, std::span<IntVarIntervalIdx const> x) {
         int32_t sumMin = 0;
         int32_t sumMax = 0;
         for (uint32_t i = 0; i < x.size(); i++) {
             sumMin += model[x[i]].min();
             sumMax += model[x[i]].max();
         }
-        IntVarIdx y = model.variable(sumMin, sumMax);
+        IntVarIntervalIdx y = model.intVarInterval(sumMin, sumMax);
         model.constraint(Sum(model, x, y));
         return y;
     }

@@ -3,7 +3,7 @@
 
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
 
 namespace cp {
 
@@ -14,7 +14,7 @@ namespace cp {
     public:
         constexpr static bool parallel = false;
 
-        NotEqual(IntVarIdx x, IntVarIdx y) :
+        NotEqual(IntVarBitsetIdx x, IntVarBitsetIdx y) :
             x(x), y(y) {}
 
         DomainChange propagate(Context ctx) const {
@@ -28,12 +28,12 @@ namespace cp {
         }
 
     private:
-        IntVarIdx x;
-        IntVarIdx y;
+        IntVarBitsetIdx x;
+        IntVarBitsetIdx y;
     };
 
 
-    inline NotEqual operator!=(IntVarIdx x, IntVarIdx y) {
+    inline NotEqual operator!=(IntVarBitsetIdx x, IntVarBitsetIdx y) {
         return NotEqual(x, y);
     }
 

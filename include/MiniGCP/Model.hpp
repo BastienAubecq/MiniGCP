@@ -11,8 +11,10 @@
 #include <stdexcept>
 #include "MiniGCP/constraints/Constraint.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
-#include "MiniGCP/state/IntVarRef.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetRef.hpp"
+#include "MiniGCP/state/IntVarIntervalIdx.hpp"
+#include "MiniGCP/state/IntVarIntervalRef.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
 #include "MiniGCP/state/ValueIdx.hpp"
 
@@ -87,11 +89,11 @@ namespace cp {
 
 
         /**
-         * @brief Allocate an integer variable with an initially full domain
+         * @brief Allocate an integer variable with an initially full bitset domain starting at 0
          * @param size Size of the domain
          * @return Index of the variable
          */
-        IntVarIdx variable(int32_t size) {
+        IntVarBitsetIdx intVarBitset(int32_t size) {
             if (size <= 0) throw std::invalid_argument("size must be strictly positive");
             int32_t nFull = size / 32;
             int32_t remaining = size % 32;
@@ -111,25 +113,25 @@ namespace cp {
                 var[3 + nFull] = ((int32_t)1 << remaining) - 1;
             }
 
-            return IntVarIdx(index, 0);
+            return IntVarBitsetIdx(index, 0);
         }
 
         /**
-         * @brief Allocate an integer variable with an initially full domain
+         * @brief Allocate an integer variable with an initially full bitset domain
          * @param min Minimum value in the domain
          * @param max Maximum value in the domain
          * @return Index of the variable
          */
-        IntVarIdx variable(int32_t min, int32_t max) {
-            return variable(max - min + 1) + min;
+        IntVarBitsetIdx intVarBitset(int32_t min, int32_t max) {
+            return intVarBitset(max - min + 1) + min;
         }
 
         /**
-         * @brief Allocate an integer variable with an arbitrary initial domain
+         * @brief Allocate an integer variable with an arbitrary initial bitset domain
          * @param values Values in the domain
          * @return Index of the variable
          */
-        IntVarIdx variable(std::span<const int32_t> values) {
+        IntVarBitsetIdx intVarBitset(std::span<const int32_t> values) {
             // Find min and max
             int32_t min = INT32_MAX;
             int32_t max = INT32_MIN;
@@ -157,7 +159,32 @@ namespace cp {
                 var[3 + v / 32] |= (int32_t)1 << v % 32;
             }
 
-            return IntVarIdx(index, min);
+            return IntVarBitsetIdx(index, min);
+        }
+
+        /**
+         * @brief Allocate an integer variable with an interval
+         * @param min Minimum value in the domain
+         * @param max Maximum value in the domain
+         * @return Index of the variable
+         */
+        IntVarIntervalIdx intVarInterval(int32_t min, int32_t max) {
+            if (max < min) throw std::invalid_argument("max must be greater than or equal to min");
+            uint32_t index = allocate<Scope::state, int32_t>(2);
+            int32_t* var = getData<Scope::state, int32_t>(index);
+            var[0] = min;
+            var[1] = max;
+            return IntVarIntervalIdx(index, 0);
+        }
+
+        /**
+         * @brief Allocate an integer variable with an interval domain starting at 0
+         * @param size Size of the domain
+         * @return Index of the variable
+         */
+        IntVarIntervalIdx intVarInterval(int32_t size) {
+            if (size <= 0) throw std::invalid_argument("size must be strictly positive");
+            return intVarInterval(0, size - 1);
         }
 
 
@@ -167,8 +194,18 @@ namespace cp {
          * @return Reference to the variable.
          * The reference is only valid until the next allocation.
          */
-        IntVarRef operator[](IntVarIdx idx) {
-            return IntVarRef(idx, std::get<(int)Scope::state>(data).data());
+        IntVarBitsetRef operator[](IntVarBitsetIdx idx) {
+            return IntVarBitsetRef(idx, std::get<(int)Scope::state>(data).data());
+        }
+
+        /**
+         * @brief Get a reference to a variable in the model
+         * @param idx Index of the variable
+         * @return Reference to the variable.
+         * The reference is only valid until the next allocation.
+         */
+        IntVarIntervalRef operator[](IntVarIntervalIdx idx) {
+            return IntVarIntervalRef(idx, std::get<(int)Scope::state>(data).data());
         }
 
         /**
@@ -266,8 +303,8 @@ namespace cp {
     class Model : public Allocator {
     public:
         ProblemType type;
-        IntVarIdx objective = {0, 0};
-        ArrayIdx<Scope::global, IntVarIdx> output = {0, 0};
+        IntVarIntervalIdx objective = {0, 0};
+        ArrayIdx<Scope::global, IntVarBitsetIdx> output = {0, 0};
 
         Model(ProblemType type) : type(type) {}
 

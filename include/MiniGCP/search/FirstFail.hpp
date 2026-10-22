@@ -22,7 +22,7 @@ namespace cp {
      */
     class FirstFail {
     public:
-        FirstFail(ArrayIdx<Scope::global, IntVarIdx> variables) :
+        FirstFail(ArrayIdx<Scope::global, IntVarBitsetIdx> variables) :
             variables(variables) {}
 
         std::optional<FixRemove> split(Context ctx) const {
@@ -37,7 +37,7 @@ namespace cp {
             }
             smallestIndex = groupArgmin(ctx, smallestSize, smallestIndex);
             if (smallestIndex == -1) return {};
-            IntVarIdx smallestVar = ctx[variables][smallestIndex];
+            IntVarBitsetIdx smallestVar = ctx[variables][smallestIndex];
             //if (ctx.item.get_local_id(0) == 0) printf("Split %d-%d\n", smallestVar.index, ctx[smallestVar].min());
             return FixRemove(smallestVar, ctx[smallestVar].min());
         }
@@ -47,7 +47,7 @@ namespace cp {
         }
         
     private:
-        ArrayIdx<Scope::global, IntVarIdx> variables;
+        ArrayIdx<Scope::global, IntVarBitsetIdx> variables;
     };
 
 }

@@ -4,8 +4,10 @@
 #include <cstdint>
 #include <array>
 #include "sycl/sycl.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
-#include "MiniGCP/state/AtomicIntVarRef.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetRef.hpp"
+#include "MiniGCP/state/IntVarIntervalIdx.hpp"
+#include "MiniGCP/state/IntVarIntervalRef.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
 #include "MiniGCP/state/ValueIdx.hpp"
 
@@ -34,8 +36,17 @@ namespace cp {
          * @param idx Index of the variable
          * @return Reference to the variable
          */
-        AtomicIntVarRef operator[](IntVarIdx idx) const {
-            return AtomicIntVarRef(idx, getData<Scope::state>());
+        AtomicIntVarBitsetRef operator[](IntVarBitsetIdx idx) const {
+            return AtomicIntVarBitsetRef(idx, getData<Scope::state>());
+        }
+
+        /**
+         * @brief Get a reference to a variable in this context
+         * @param idx Index of the variable
+         * @return Reference to the variable
+         */
+        AtomicIntVarIntervalRef operator[](IntVarIntervalIdx idx) const {
+            return AtomicIntVarIntervalRef(idx, getData<Scope::state>());
         }
 
         /**

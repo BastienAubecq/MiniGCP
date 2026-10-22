@@ -8,7 +8,7 @@ using namespace cp;
 
 TEST_CASE("FixRemove fix branch", "[FixRemove]") {
     Allocator allocator;
-    IntVarIdx idx = allocator.variable(5);
+    IntVarBitsetIdx idx = allocator.intVarBitset(5);
     FixRemove decision(idx, 3);
 
     runOnDevice(allocator, 1, [=](Context ctx) {
@@ -21,7 +21,7 @@ TEST_CASE("FixRemove fix branch", "[FixRemove]") {
 
 TEST_CASE("FixRemove remove branch", "[FixRemove]") {
     Allocator allocator;
-    IntVarIdx idx = allocator.variable(5);
+    IntVarBitsetIdx idx = allocator.intVarBitset(5);
     FixRemove decision(idx, 3);
 
     runOnDevice(allocator, 1, [=](Context ctx) {

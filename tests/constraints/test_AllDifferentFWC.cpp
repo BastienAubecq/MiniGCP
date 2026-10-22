@@ -11,9 +11,9 @@ using namespace std;
 
 TEST_CASE("AllDifferentFWCSeq one fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     allocator[variables[5]].fix(5);
     AllDifferentFWCSeq constraint(allocator, variables);
@@ -30,9 +30,9 @@ TEST_CASE("AllDifferentFWCSeq one fixed", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWCSeq few fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     allocator[variables[3]].fix(2);
     allocator[variables[5]].fix(5);
@@ -53,9 +53,9 @@ TEST_CASE("AllDifferentFWCSeq few fixed", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWCSeq none fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     AllDifferentFWCSeq constraint(allocator, variables);
 
@@ -68,9 +68,9 @@ TEST_CASE("AllDifferentFWCSeq none fixed", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWCSeq all fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(i, i));
+        variables.push_back(allocator.intVarBitset(i, i));
     }
     AllDifferentFWCSeq constraint(allocator, variables);
 
@@ -83,9 +83,9 @@ TEST_CASE("AllDifferentFWCSeq all fixed", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWCSeq inconsistency", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     allocator[variables[3]].fix(5);
     allocator[variables[7]].fix(5);
@@ -101,9 +101,9 @@ TEST_CASE("AllDifferentFWCSeq inconsistency", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWC one fixed", "[AllDifferentFWC]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     allocator[variables[5]].fix(5);
     AllDifferentFWC constraint(allocator, variables);
@@ -120,9 +120,9 @@ TEST_CASE("AllDifferentFWC one fixed", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC few fixed", "[AllDifferentFWC]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     allocator[variables[3]].fix(2);
     allocator[variables[5]].fix(5);
@@ -143,9 +143,9 @@ TEST_CASE("AllDifferentFWC few fixed", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC none fixed", "[AllDifferentFWC]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     AllDifferentFWC constraint(allocator, variables);
 
@@ -158,9 +158,9 @@ TEST_CASE("AllDifferentFWC none fixed", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC all fixed", "[AllDifferentFWC]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(i, i));
+        variables.push_back(allocator.intVarBitset(i, i));
     }
     AllDifferentFWC constraint(allocator, variables);
 
@@ -173,9 +173,9 @@ TEST_CASE("AllDifferentFWC all fixed", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC inconsistency", "[AllDifferentFWC]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     allocator[variables[3]].fix(5);
     allocator[variables[7]].fix(5);
@@ -191,9 +191,9 @@ TEST_CASE("AllDifferentFWC inconsistency", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC concurrent few variables", "[AllDifferentFWC][concurrent]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.variable(10));
+        variables.push_back(allocator.intVarBitset(10));
     }
     allocator[variables[3]].fix(2);
     allocator[variables[5]].fix(5);
@@ -214,9 +214,9 @@ TEST_CASE("AllDifferentFWC concurrent few variables", "[AllDifferentFWC][concurr
 
 TEST_CASE("AllDifferentFWC concurrent many variables", "[AllDifferentFWC][concurrent]") {
     Allocator allocator;
-    vector<IntVarIdx> variables;
+    vector<IntVarBitsetIdx> variables;
     for (int i = 0; i < 100; i++) {
-        variables.push_back(allocator.variable(100));
+        variables.push_back(allocator.intVarBitset(100));
         if (i % 10 == 0) allocator[variables[i]].fix(i);
     }
     AllDifferentFWC constraint(allocator, variables);

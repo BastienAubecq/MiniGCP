@@ -6,7 +6,8 @@
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
+#include "MiniGCP/state/IntVarIntervalIdx.hpp"
 #include "MiniGCP/state/ValueIdx.hpp"
 
 namespace cp {
@@ -19,7 +20,7 @@ namespace cp {
     public:
         constexpr static bool parallel = false;
 
-        Element1D(Allocator& allocator, ArrayIdx<Scope::global, int32_t> t, IntVarIdx y, IntVarIdx z) :
+        Element1D(Allocator& allocator, ArrayIdx<Scope::global, int32_t> t, IntVarBitsetIdx y, IntVarIntervalIdx z) :
             t(t), y(y), z(z),
             sorted(allocator.array<Scope::global, uint32_t>(t.size())),
             min(allocator.value<Scope::state, uint32_t>(0)),
@@ -62,8 +63,8 @@ namespace cp {
 
     private:
         ArrayIdx<Scope::global, int32_t> t;
-        IntVarIdx y;
-        IntVarIdx z;
+        IntVarBitsetIdx y;
+        IntVarIntervalIdx z;
         ArrayIdx<Scope::global, uint32_t> sorted; // Indices of the values in t in sorted order
         ValueIdx<Scope::state, uint32_t> min; // Index of the index of the minimum feasible value in t
         ValueIdx<Scope::state, uint32_t> max; // Index of the index of the maximum feasible value in t
@@ -78,7 +79,7 @@ namespace cp {
      * @return The result
      */
     template<Constraint... Constraints>
-    inline IntVarIdx element1D(Model<Constraints...>& model, ArrayIdx<Scope::global, int32_t> t, IntVarIdx y) {
+    inline IntVarIntervalIdx element1D(Model<Constraints...>& model, ArrayIdx<Scope::global, int32_t> t, IntVarBitsetIdx y) {
         int32_t min = INT32_MAX;
         int32_t max = INT32_MIN;
         for (uint32_t i = 0; i < t.size(); i++) {
@@ -86,7 +87,7 @@ namespace cp {
             if (v < min) min = v;
             if (v > max) max = v;
         }
-        IntVarIdx z = model.variable(min, max);
+        IntVarIntervalIdx z = model.intVarInterval(min, max);
         model.constraint(Element1D(model, t, y, z));
         return z;
     }

@@ -14,7 +14,7 @@
 #include "MiniGCP/search/SearchStatistics.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
 
 namespace cp {
 
@@ -28,7 +28,7 @@ namespace cp {
     public:
         DataStore(
             sycl::queue& queue, std::array<std::span<std::byte const>, 3> data, uint32_t temporarySize,
-            ArrayIdx<Scope::global, IntVarIdx> output, uint32_t nGroups, uint32_t maxDepth, int32_t objective
+            ArrayIdx<Scope::global, IntVarBitsetIdx> output, uint32_t nGroups, uint32_t maxDepth, int32_t objective
         ) : temporarySize(temporarySize), output(output) {
             globalSize = data[0].size();
             localSize = data[1].size();
@@ -63,7 +63,7 @@ namespace cp {
             if (localSize > 0) queue.memcpy(localData, data[1].data(), localSize);
             if (stateSize > 0) queue.memcpy(stateData, data[2].data(), stateSize);
             queue.memcpy(outputData, outputInit, sizeof(int32_t) * (output.size() + 1) * nGroups);
-            queue.memset(tops, -1, sizeof(uint32_t) * nGroups);
+            queue.memset(tops, 0, sizeof(uint32_t) * nGroups);
             queue.wait();
 
             delete[] outputInit;
@@ -173,12 +173,12 @@ namespace cp {
          * @return Whether the push succeeded
          */
         bool push(Context ctx, Decision decision) const {
-            uint32_t index = tops[ctx.item.get_group(0)] + 1;
+            uint32_t index = tops[ctx.item.get_group(0)];
             if (index >= stackSize) return false;
             sycl::group_barrier(ctx.item.get_group());
             if (ctx.item.get_local_id(0) == 0) {
                 //printf("Push %d\n", index);
-                tops[ctx.item.get_group(0)] = index;
+                tops[ctx.item.get_group(0)] = index + 1;
                 decisions[ctx.item.get_group_range(0) * index + ctx.item.get_group(0)] = decision;
             }
             std::byte* frame = stateData + stateSize * (1 + ctx.item.get_group_range(0) * (1 + index) + ctx.item.get_group(0));
@@ -192,12 +192,12 @@ namespace cp {
          * @return The decision if the pop succeeded
          */
         std::optional<Decision> pop(Context ctx) const {
-            uint32_t index = tops[ctx.item.get_group(0)];
+            uint32_t index = tops[ctx.item.get_group(0)] - 1;
             if (index == -1) return {};
             sycl::group_barrier(ctx.item.get_group());
             if (ctx.item.get_local_id(0) == 0) {
                 //printf("Pop %d\n", index);
-                tops[ctx.item.get_group(0)] = index - 1;
+                tops[ctx.item.get_group(0)] = index;
             }
             std::byte* frame = stateData + stateSize * (1 + ctx.item.get_group_range(0) * (1 + index) + ctx.item.get_group(0));
             copy(ctx.item, frame, ctx.getData<Scope::state>(), stateSize);
@@ -244,7 +244,7 @@ namespace cp {
         int32_t* outputData; // Values of the output variables
         Decision* decisions; // Stack of decisions
         uint32_t* tops; // Top of the stacks
-        ArrayIdx<Scope::global, IntVarIdx> output;
+        ArrayIdx<Scope::global, IntVarBitsetIdx> output;
 
         /**
          * @brief Copy some data from a source to a destination with a group of threads

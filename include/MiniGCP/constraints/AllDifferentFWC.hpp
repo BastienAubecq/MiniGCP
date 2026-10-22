@@ -8,7 +8,7 @@
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
 #include "MiniGCP/state/ValueIdx.hpp"
 
 namespace cp {
@@ -21,13 +21,13 @@ namespace cp {
     public:
         constexpr static bool parallel = false;
 
-        AllDifferentFWCSeq(Allocator& allocator, std::span<IntVarIdx const> variables) :
-            variables(allocator.array<Scope::local, IntVarIdx>(variables)),
+        AllDifferentFWCSeq(Allocator& allocator, std::span<IntVarBitsetIdx const> variables) :
+            variables(allocator.array<Scope::local, IntVarBitsetIdx>(variables)),
             nFixed(allocator.value<Scope::state, uint32_t>(0)) {}
 
         DomainChange propagate(Context ctx) const {
             uint32_t& nFixed = ctx[this->nFixed];
-            IntVarIdx* vars = ctx[variables];
+            IntVarBitsetIdx* vars = ctx[variables];
             DomainChange change = DomainChange::none;
             for (uint32_t i = nFixed; i < variables.size(); i++) {
                 if (ctx[vars[i]].fixed()) {
@@ -42,7 +42,7 @@ namespace cp {
         }
 
     private:
-        ArrayIdx<Scope::local, IntVarIdx> variables;
+        ArrayIdx<Scope::local, IntVarBitsetIdx> variables;
         ValueIdx<Scope::state, uint32_t> nFixed;
     };
 
@@ -56,13 +56,13 @@ namespace cp {
     public:
         constexpr static bool parallel = true;
 
-        AllDifferentFWC(Allocator& allocator, std::span<IntVarIdx const> variables) :
-            variables(allocator.array<Scope::local, IntVarIdx>(variables)),
+        AllDifferentFWC(Allocator& allocator, std::span<IntVarBitsetIdx const> variables) :
+            variables(allocator.array<Scope::local, IntVarBitsetIdx>(variables)),
             nFixed(allocator.value<Scope::state, uint32_t>(0)) {}
 
         DomainChange propagate(Context ctx) const {
             uint32_t nFixed = ctx[this->nFixed];
-            IntVarIdx* vars = ctx[variables];
+            IntVarBitsetIdx* vars = ctx[variables];
             DomainChange change = DomainChange::none;
 
             for (uint32_t b = nFixed; b < variables.size(); b += ctx.item.get_local_range(0)) {
@@ -91,7 +91,7 @@ namespace cp {
         }
 
     private:
-        ArrayIdx<Scope::local, IntVarIdx> variables;
+        ArrayIdx<Scope::local, IntVarBitsetIdx> variables;
         ValueIdx<Scope::state, uint32_t> nFixed;
     };
 

@@ -8,8 +8,8 @@ using namespace cp;
 
 TEST_CASE("NotEqual neither fixed", "[NotEqual]") {
     Allocator allocator;
-    IntVarIdx x = allocator.variable(3);
-    IntVarIdx y = allocator.variable(3);
+    IntVarBitsetIdx x = allocator.intVarBitset(3);
+    IntVarBitsetIdx y = allocator.intVarBitset(3);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -23,8 +23,8 @@ TEST_CASE("NotEqual neither fixed", "[NotEqual]") {
 
 TEST_CASE("NotEqual first fixed", "[NotEqual]") {
     Allocator allocator;
-    IntVarIdx x = allocator.variable(2);
-    IntVarIdx y = allocator.variable(1);
+    IntVarBitsetIdx x = allocator.intVarBitset(2);
+    IntVarBitsetIdx y = allocator.intVarBitset(1);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -38,8 +38,8 @@ TEST_CASE("NotEqual first fixed", "[NotEqual]") {
 
 TEST_CASE("NotEqual second fixed", "[NotEqual]") {
     Allocator allocator;
-    IntVarIdx x = allocator.variable(1);
-    IntVarIdx y = allocator.variable(2);
+    IntVarBitsetIdx x = allocator.intVarBitset(1);
+    IntVarBitsetIdx y = allocator.intVarBitset(2);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -53,8 +53,8 @@ TEST_CASE("NotEqual second fixed", "[NotEqual]") {
 
 TEST_CASE("NotEqual both fixed", "[NotEqual]") {
     Allocator allocator;
-    IntVarIdx x = allocator.variable(2);
-    IntVarIdx y = allocator.variable(2);
+    IntVarBitsetIdx x = allocator.intVarBitset(2);
+    IntVarBitsetIdx y = allocator.intVarBitset(2);
     allocator[x].fix(0);
     allocator[y].fix(1);
     NotEqual constraint(x, y);
@@ -68,8 +68,8 @@ TEST_CASE("NotEqual both fixed", "[NotEqual]") {
 
 TEST_CASE("NotEqual inconsistency", "[NotEqual]") {
     Allocator allocator;
-    IntVarIdx x = allocator.variable(1);
-    IntVarIdx y = allocator.variable(1);
+    IntVarBitsetIdx x = allocator.intVarBitset(1);
+    IntVarBitsetIdx y = allocator.intVarBitset(1);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {

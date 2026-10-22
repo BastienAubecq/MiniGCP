@@ -11,12 +11,12 @@ using namespace std;
 
 TEST_CASE("SumSeq update y", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> x {
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2)
+    vector<IntVarIntervalIdx> x {
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2)
     };
-    IntVarIdx y = allocator.variable(-10, 10);
+    IntVarIntervalIdx y = allocator.intVarInterval(-10, 10);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -34,12 +34,12 @@ TEST_CASE("SumSeq update y", "[SumSeq]") {
 
 TEST_CASE("SumSeq update one x_i", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> x {
-        allocator.variable(-1, 2),
-        allocator.variable(-10, 10),
-        allocator.variable(-1, 2)
+    vector<IntVarIntervalIdx> x {
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-10, 10),
+        allocator.intVarInterval(-1, 2)
     };
-    IntVarIdx y = allocator.variable(-1, 2);
+    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -57,12 +57,12 @@ TEST_CASE("SumSeq update one x_i", "[SumSeq]") {
 
 TEST_CASE("SumSeq no change", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> x {
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2)
+    vector<IntVarIntervalIdx> x {
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2)
     };
-    IntVarIdx y = allocator.variable(-3, 6);
+    IntVarIntervalIdx y = allocator.intVarInterval(-3, 6);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -74,12 +74,12 @@ TEST_CASE("SumSeq no change", "[SumSeq]") {
 
 TEST_CASE("SumSeq inconsistency", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> x {
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2)
+    vector<IntVarIntervalIdx> x {
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2)
     };
-    IntVarIdx y = allocator.variable(7, 10);
+    IntVarIntervalIdx y = allocator.intVarInterval(7, 10);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -91,11 +91,11 @@ TEST_CASE("SumSeq inconsistency", "[SumSeq]") {
 
 TEST_CASE("SumSeq update all x_i", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIdx> x;
+    vector<IntVarIntervalIdx> x;
     for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.variable(-20, 1));
+        x.push_back(allocator.intVarInterval(-20, 1));
     }
-    IntVarIdx y = allocator.variable(-1, 2);
+    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -114,12 +114,12 @@ TEST_CASE("SumSeq update all x_i", "[SumSeq]") {
 
 TEST_CASE("Sum update y", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIdx> x {
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2)
+    vector<IntVarIntervalIdx> x {
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2)
     };
-    IntVarIdx y = allocator.variable(-10, 10);
+    IntVarIntervalIdx y = allocator.intVarInterval(-10, 10);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -137,12 +137,12 @@ TEST_CASE("Sum update y", "[Sum]") {
 
 TEST_CASE("Sum update one x_i", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIdx> x {
-        allocator.variable(-1, 2),
-        allocator.variable(-10, 10),
-        allocator.variable(-1, 2)
+    vector<IntVarIntervalIdx> x {
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-10, 10),
+        allocator.intVarInterval(-1, 2)
     };
-    IntVarIdx y = allocator.variable(-1, 2);
+    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -160,12 +160,12 @@ TEST_CASE("Sum update one x_i", "[Sum]") {
 
 TEST_CASE("Sum no change", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIdx> x {
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2)
+    vector<IntVarIntervalIdx> x {
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2)
     };
-    IntVarIdx y = allocator.variable(-3, 6);
+    IntVarIntervalIdx y = allocator.intVarInterval(-3, 6);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -177,12 +177,12 @@ TEST_CASE("Sum no change", "[Sum]") {
 
 TEST_CASE("Sum inconsistency", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIdx> x {
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2),
-        allocator.variable(-1, 2)
+    vector<IntVarIntervalIdx> x {
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2),
+        allocator.intVarInterval(-1, 2)
     };
-    IntVarIdx y = allocator.variable(7, 10);
+    IntVarIntervalIdx y = allocator.intVarInterval(7, 10);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -194,11 +194,11 @@ TEST_CASE("Sum inconsistency", "[Sum]") {
 
 TEST_CASE("Sum update all x_i", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIdx> x;
+    vector<IntVarIntervalIdx> x;
     for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.variable(-20, 1));
+        x.push_back(allocator.intVarInterval(-20, 1));
     }
-    IntVarIdx y = allocator.variable(-1, 2);
+    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -217,11 +217,11 @@ TEST_CASE("Sum update all x_i", "[Sum]") {
 
 TEST_CASE("Sum concurrent few variables", "[Sum][concurrent]") {
     Allocator allocator;
-    vector<IntVarIdx> x;
+    vector<IntVarIntervalIdx> x;
     for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.variable(-20, 1));
+        x.push_back(allocator.intVarInterval(-20, 1));
     }
-    IntVarIdx y = allocator.variable(-1, 2);
+    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
     Sum constraint(allocator, x, y);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
@@ -239,11 +239,11 @@ TEST_CASE("Sum concurrent few variables", "[Sum][concurrent]") {
 
 TEST_CASE("Sum concurrent many variables", "[Sum][concurrent]") {
     Allocator allocator;
-    vector<IntVarIdx> x;
+    vector<IntVarIntervalIdx> x;
     for (int i = 0; i < 100; i++) {
-        x.push_back(allocator.variable(-200, 1));
+        x.push_back(allocator.intVarInterval(-200, 1));
     }
-    IntVarIdx y = allocator.variable(-1, 2);
+    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
     Sum constraint(allocator, x, y);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {

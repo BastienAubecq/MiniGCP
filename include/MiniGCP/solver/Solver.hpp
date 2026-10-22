@@ -15,7 +15,8 @@
 #include "MiniGCP/solver/DataStore.hpp"
 #include "MiniGCP/solver/DeviceParams.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
+#include "MiniGCP/state/IntVarIntervalIdx.hpp"
 
 namespace cp {
 
@@ -26,7 +27,7 @@ namespace cp {
     class DeviceSolver {
     public:
         ProblemType type;
-        IntVarIdx objective;
+        IntVarIntervalIdx objective;
         Strategy strategy;
         DataStore<DecisionOf<Strategy>> data;
         ConstraintStore<Constraints...> constraints;

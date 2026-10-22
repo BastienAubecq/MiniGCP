@@ -1,31 +1,31 @@
-#ifndef MINIGCP_INT_VAR_IDX
-#define MINIGCP_INT_VAR_IDX
+#ifndef MINIGCP_INT_VAR_BITSET_IDX
+#define MINIGCP_INT_VAR_BITSET_IDX
 
 #include <cstdint>
 
 namespace cp {
 
     /**
-     * @brief Index of an integer variable in a state.
+     * @brief Index of an integer variable represented with a bitset in a state.
      * Variables are represented with an index instead of a direct reference because their location
      * depends on where the state is stored, which can change during execution.
      * To access the variable, first get a reference to it from a context or a model with 
      * their subscript operator, which adds the current state location to the index.
      */
-    class IntVarIdx {
-        friend class IntVarRef;
-        friend class AtomicIntVarRef;
+    class IntVarBitsetIdx {
+        friend class IntVarBitsetRef;
+        friend class AtomicIntVarBitsetRef;
 
     public:
-        IntVarIdx(uint32_t index, int32_t offset) :
+        IntVarBitsetIdx(uint32_t index, int32_t offset) :
             index(index), offset(offset) {}
 
-        IntVarIdx& operator+=(int32_t y) {
+        IntVarBitsetIdx& operator+=(int32_t y) {
             offset += y;
             return *this;
         }
 
-        IntVarIdx& operator-=(int32_t y) {
+        IntVarBitsetIdx& operator-=(int32_t y) {
             offset -= y;
             return *this;
         }
@@ -36,15 +36,15 @@ namespace cp {
     };
 
 
-    inline IntVarIdx operator+(IntVarIdx x, int32_t y) {
+    inline IntVarBitsetIdx operator+(IntVarBitsetIdx x, int32_t y) {
         return x += y;
     }
 
-    inline IntVarIdx operator+(int32_t x, IntVarIdx y) {
+    inline IntVarBitsetIdx operator+(int32_t x, IntVarBitsetIdx y) {
         return y += x;
     }
 
-    inline IntVarIdx operator-(IntVarIdx x, int32_t y) {
+    inline IntVarBitsetIdx operator-(IntVarBitsetIdx x, int32_t y) {
         return x -= y;
     }
 

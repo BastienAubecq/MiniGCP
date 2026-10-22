@@ -7,7 +7,7 @@
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/ArrayIdx.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarIdx.hpp"
+#include "MiniGCP/state/IntVarBitsetIdx.hpp"
 #include "MiniGCP/state/ValueIdx.hpp"
 
 namespace cp {
@@ -20,7 +20,7 @@ namespace cp {
     public:
         constexpr static bool parallel = false;
 
-        CircuitSeq(Allocator& allocator, ArrayIdx<Scope::global, IntVarIdx> succ) :
+        CircuitSeq(Allocator& allocator, ArrayIdx<Scope::global, IntVarBitsetIdx> succ) :
             succ(succ),
             notFixed(allocator.array<Scope::local, uint32_t>(succ.size())),
             pathEnd(allocator.array<Scope::state, uint32_t>(succ.size())),
@@ -56,7 +56,7 @@ namespace cp {
         }
 
     private:
-        ArrayIdx<Scope::global, IntVarIdx> succ;
+        ArrayIdx<Scope::global, IntVarBitsetIdx> succ;
         ArrayIdx<Scope::local, uint32_t> notFixed; // Indices of the unfixed variables
         ArrayIdx<Scope::state, uint32_t> pathEnd; // Other end of the path that starts at each node
         ValueIdx<Scope::state, uint32_t> nFixed;
@@ -72,7 +72,7 @@ namespace cp {
     public:
         constexpr static bool parallel = true;
 
-        Circuit(Allocator& allocator, ArrayIdx<Scope::global, IntVarIdx> succ) :
+        Circuit(Allocator& allocator, ArrayIdx<Scope::global, IntVarBitsetIdx> succ) :
             succ(succ),
             notFixed(allocator.array<Scope::local, uint32_t>(succ.size())),
             pathEnd(allocator.array<Scope::state, uint32_t>(succ.size())),
@@ -125,7 +125,7 @@ namespace cp {
         }
 
     private:
-        ArrayIdx<Scope::global, IntVarIdx> succ;
+        ArrayIdx<Scope::global, IntVarBitsetIdx> succ;
         ArrayIdx<Scope::local, uint32_t> notFixed; // Indices of the unfixed variables
         ArrayIdx<Scope::state, uint32_t> pathEnd; // Other end of the path that starts at each node
         ValueIdx<Scope::state, uint32_t> nFixed;
