@@ -28,7 +28,7 @@ namespace cp {
     public:
         DataStore(
             sycl::queue& queue, std::array<std::span<std::byte const>, 3> data, uint32_t temporarySize,
-            ArrayIdx<Scope::global, IntVarBitsetIdx> output, uint32_t nGroups, uint32_t maxDepth, int32_t objective
+            ArrayIdx<Scope::global, IntVarBitsetIdx> output, size_t nGroups, uint32_t maxDepth, int32_t objective
         ) : temporarySize(temporarySize), output(output) {
             globalSize = data[0].size();
             localSize = data[1].size();
@@ -36,20 +36,17 @@ namespace cp {
             if (localSize % sizeof(uint32_t) != 0) localSize += sizeof(uint32_t) - localSize % sizeof(uint32_t);
             if (stateSize % sizeof(uint32_t) != 0) stateSize += sizeof(uint32_t) - stateSize % sizeof(uint32_t);
             stackSize = maxDepth;
+            size_t allocLocalSize = localSize * (1 + nGroups);
+            size_t allocStateSize = stateSize * (1 + (stackSize + 1) * nGroups);
+
             size_t localMemorySize = queue.get_device().get_info<sycl::info::device::local_mem_size>();
             if (temporarySize > localMemorySize) throw std::range_error("Temporary size exceeds local memory size");
-            localCurrentState =
+            localState =
                 queue.get_device().get_info<sycl::info::device::local_mem_type>() == sycl::info::local_mem_type::local &&
                 localMemorySize > temporarySize + stateSize;
-            
-            size_t allocLocalSize = static_cast<size_t>(localSize) * (1 + nGroups);
-            size_t allocStateSize = static_cast<size_t>(stateSize) * (1 + (stackSize + 1) * nGroups);
-            if (allocLocalSize > UINT32_MAX || allocStateSize > UINT32_MAX) {
-                throw std::range_error("Allocated size exceeds 32-bit integer range");
-            }
 
             int32_t* outputInit = new int32_t[(output.size() + 1) * nGroups];
-            for (uint32_t i = 0; i < nGroups; i++) {
+            for (size_t i = 0; i < nGroups; i++) {
                 outputInit[(output.size() + 1) * i + output.size()] = objective;
             }
 
@@ -95,10 +92,10 @@ namespace cp {
          * @param objective Best objective value
          * @param solution Values of the output variables
          */
-        void getOutput(sycl::queue& queue, uint32_t nGroups, int32_t objective, int32_t* solution) const {
+        void getOutput(sycl::queue& queue, size_t nGroups, int32_t objective, int32_t* solution) const {
             int32_t* outputData = new int32_t[(output.size() + 1) * nGroups];
-            queue.memcpy(outputData, this->outputData, (output.size() + 1) * nGroups * sizeof(int32_t)).wait();
-            for (uint32_t i = 0; i < nGroups; i++) { // Take the solution of the first group that has the best objective
+            queue.memcpy(outputData, this->outputData, sizeof(int32_t) * (output.size() + 1) * nGroups).wait();
+            for (size_t i = 0; i < nGroups; i++) { // Take the solution of the first group that has the best objective
                 if (outputData[(output.size() + 1) * i + output.size()] == objective) {
                     std::copy(outputData + (output.size() + 1) * i, outputData + (output.size() + 1) * i + output.size(), solution);
                     break;
@@ -114,7 +111,7 @@ namespace cp {
         std::array<sycl::local_accessor<std::byte>, 2> getLocalMemory(sycl::handler& handler) const {
             return {
                 sycl::local_accessor<std::byte>(temporarySize + 4, handler), // Add 4 bytes for utils
-                sycl::local_accessor<std::byte>(localCurrentState ? stateSize : 0, handler)
+                sycl::local_accessor<std::byte>(localState? stateSize : 0, handler)
             };
         }
 
@@ -129,7 +126,7 @@ namespace cp {
             return Context(item, error, {
                 globalData,
                 localData + localSize * (1 + item.get_group(0)),
-                localCurrentState ?
+                localState ?
                     std::get<1>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
                     stateData + stateSize * (1 + item.get_group(0))
             }, std::get<0>(local).get_multi_ptr<sycl::access::decorated::no>().get() + 4);
@@ -146,21 +143,21 @@ namespace cp {
         }
 
         /**
-         * @brief Save current state in global memory
+         * @brief Save data stored in local memory to global memory
          * @param ctx Current context
          */
         void save(Context ctx) const {
-            if (localCurrentState) {
+            if (localState) {
                 copy(ctx.item, ctx.getData<Scope::state>(), stateData + stateSize * (1 + ctx.item.get_group(0)), stateSize);
             }
         }
 
         /**
-         * @brief Restore current state from global memory
+         * @brief Restore data stored in local memory from global memory
          * @param ctx Current context
          */
         void restore(Context ctx) const {
-            if (localCurrentState) {
+            if (localState) {
                 copy(ctx.item, stateData + stateSize * (1 + ctx.item.get_group(0)), ctx.getData<Scope::state>(), stateSize);
             }
         }
@@ -237,7 +234,7 @@ namespace cp {
         uint32_t stateSize;
         uint32_t stackSize;
         uint32_t temporarySize;
-        bool localCurrentState; // Whether the current state is stored in local memory
+        bool localState; // Whether the current state is stored in local memory
         std::byte* globalData;
         std::byte* localData;
         std::byte* stateData; // Stacks of states

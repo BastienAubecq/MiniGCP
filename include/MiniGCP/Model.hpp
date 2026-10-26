@@ -81,7 +81,7 @@ namespace cp {
         template<typename T>
         void temporary(uint32_t size) {
             size_t bytes = size * sizeof(T);
-            if (bytes > UINT32_MAX) {
+            if (bytes + 4 > UINT32_MAX) {
                 throw std::range_error("Allocated size exceeds 32-bit integer range");
             } 
             temporarySize = std::max(temporarySize, static_cast<uint32_t>(bytes));
