@@ -39,11 +39,14 @@ namespace cp {
             size_t allocLocalSize = localSize * (1 + nGroups);
             size_t allocStateSize = stateSize * (1 + (stackSize + 1) * nGroups);
 
-            size_t localMemorySize = queue.get_device().get_info<sycl::info::device::local_mem_size>();
-            if (temporarySize > localMemorySize) throw std::range_error("Temporary size exceeds local memory size");
-            localState =
-                queue.get_device().get_info<sycl::info::device::local_mem_type>() == sycl::info::local_mem_type::local &&
-                localMemorySize > temporarySize + stateSize;
+            if (queue.get_device().get_info<sycl::info::device::local_mem_type>() == sycl::info::local_mem_type::local) {
+                size_t localMemorySize = queue.get_device().get_info<sycl::info::device::local_mem_size>() - temporarySize;
+                if (localMemorySize > localSize) {
+                    localLocal = true;
+                    localMemorySize -= localSize;
+                }
+                if (localMemorySize > stateSize) localState = true;
+            }
 
             int32_t* outputInit = new int32_t[(output.size() + 1) * nGroups];
             for (size_t i = 0; i < nGroups; i++) {
@@ -108,10 +111,11 @@ namespace cp {
         /**
          * @brief Get local memory
          */
-        std::array<sycl::local_accessor<std::byte>, 2> getLocalMemory(sycl::handler& handler) const {
+        std::array<sycl::local_accessor<std::byte>, 3> getLocalMemory(sycl::handler& handler) const {
             return {
                 sycl::local_accessor<std::byte>(temporarySize + 4, handler), // Add 4 bytes for utils
-                sycl::local_accessor<std::byte>(localState? stateSize : 0, handler)
+                sycl::local_accessor<std::byte>(localLocal ? localSize : 0, handler),
+                sycl::local_accessor<std::byte>(localState ? stateSize : 0, handler)
             };
         }
 
@@ -122,12 +126,14 @@ namespace cp {
          * @param local Local memory
          * @return Current context
          */
-        Context getContext(sycl::nd_item<1> item, sycl::stream error, std::array<sycl::local_accessor<std::byte>, 2> local) const {
+        Context getContext(sycl::nd_item<1> item, sycl::stream error, std::array<sycl::local_accessor<std::byte>, 3> local) const {
             return Context(item, error, {
                 globalData,
-                localData + localSize * (1 + item.get_group(0)),
-                localState ?
+                localLocal ?
                     std::get<1>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
+                    localData + localSize * (1 + item.get_group(0)),
+                localState ?
+                    std::get<2>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
                     stateData + stateSize * (1 + item.get_group(0))
             }, std::get<0>(local).get_multi_ptr<sycl::access::decorated::no>().get() + 4);
         }
@@ -147,6 +153,9 @@ namespace cp {
          * @param ctx Current context
          */
         void save(Context ctx) const {
+            if (localLocal) {
+                copy(ctx.item, ctx.getData<Scope::local>(), localData + localSize * (1 + ctx.item.get_group(0)), localSize);
+            }
             if (localState) {
                 copy(ctx.item, ctx.getData<Scope::state>(), stateData + stateSize * (1 + ctx.item.get_group(0)), stateSize);
             }
@@ -157,6 +166,9 @@ namespace cp {
          * @param ctx Current context
          */
         void restore(Context ctx) const {
+            if (localLocal) {
+                copy(ctx.item, localData + localSize * (1 + ctx.item.get_group(0)), ctx.getData<Scope::local>(), localSize);
+            }
             if (localState) {
                 copy(ctx.item, stateData + stateSize * (1 + ctx.item.get_group(0)), ctx.getData<Scope::state>(), stateSize);
             }
@@ -234,7 +246,8 @@ namespace cp {
         uint32_t stateSize;
         uint32_t stackSize;
         uint32_t temporarySize;
-        bool localState; // Whether the current state is stored in local memory
+        bool localLocal = false; // Whether local data is stored in shared memory
+        bool localState = false; // Whether the current state is stored in local memory
         std::byte* globalData;
         std::byte* localData;
         std::byte* stateData; // Stacks of states
