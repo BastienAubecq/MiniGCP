@@ -40,23 +40,20 @@ namespace cp {
             uint32_t n = this->t.size();
             uint32_t* sorted = ctx[this->sorted];
             DomainChange change = DomainChange::none;
+            int32_t i = ctx[min];
+            int32_t j = ctx[max];
 
             int32_t zMin = ctx[z].min();
-            int32_t i;
-            for (i = ctx[min]; i < n && t[sorted[i]] < zMin; i++) {
-                change |= ctx[y].remove(sorted[i]);
-            }
-            while (i < n && !ctx[y].contains(sorted[i])) i++;
+            while (i <= j && t[sorted[i]] < zMin) change |= ctx[y].remove(sorted[i++]);
+            while (i <= j && !ctx[y].contains(sorted[i])) i++;
             if (i < n) change |= ctx[z].removeBelow(t[sorted[i]]);
             ctx[min] = i;
 
             int32_t zMax = ctx[z].max();
-            for (i = ctx[max]; i >= 0 && t[sorted[i]] > zMax; i--) {
-                change |= ctx[y].remove(sorted[i]);
-            }
-            while (i >= 0 && !ctx[y].contains(sorted[i])) i--;
-            if (i >= 0) change |= ctx[z].removeAbove(t[sorted[i]]);
-            ctx[max] = i;
+            while (j >= i && t[sorted[j]] > zMax) change |= ctx[y].remove(sorted[j--]);
+            while (j >= i && !ctx[y].contains(sorted[j])) j--;
+            if (j >= 0) change |= ctx[z].removeAbove(t[sorted[j]]);
+            ctx[max] = j;
 
             return change;
         }
