@@ -26,9 +26,10 @@ namespace cp {
             nFixed(allocator.value<Scope::state, uint32_t>(0)) {}
 
         DomainChange propagate(Context ctx) const {
-            uint32_t& nFixed = ctx[this->nFixed];
+            uint32_t nFixed = ctx[this->nFixed];
             IntVarBitsetIdx* vars = ctx[variables];
             DomainChange change = DomainChange::none;
+
             for (uint32_t i = nFixed; i < variables.size(); i++) {
                 if (ctx[vars[i]].fixed()) {
                     int32_t v = ctx[vars[i]].min();
@@ -38,6 +39,8 @@ namespace cp {
                     }
                 }
             }
+
+            ctx[this->nFixed] = nFixed;
             return change;
         }
 

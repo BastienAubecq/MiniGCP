@@ -28,8 +28,8 @@ namespace cp {
             sumFixed(allocator.value<Scope::state, int32_t>(0)) {}
 
         DomainChange propagate(Context ctx) const {
-            uint32_t& nFixed = ctx[this->nFixed];
-            int32_t& sumFixed = ctx[this->sumFixed];
+            uint32_t nFixed = ctx[this->nFixed];
+            int32_t sumFixed = ctx[this->sumFixed];
             IntVarIntervalIdx* x = ctx[this->x];
             
             // Get sum of min and max values of x
@@ -57,6 +57,9 @@ namespace cp {
                 change |= ctx[x[i]].removeBelow(-(sumMax - max));
                 change |= ctx[x[i]].removeAbove(-(sumMin - min));
             }
+
+            ctx[this->nFixed] = nFixed;
+            ctx[this->sumFixed] = sumFixed;
             return change;
         }
 

@@ -35,15 +35,17 @@ namespace cp {
         }
 
         DomainChange propagate(Context ctx) const {
-            DomainChange change = DomainChange::none;
+            uint32_t nFixed = ctx[this->nFixed];
             uint32_t* notFixed = ctx[this->notFixed];
             uint32_t* pathEnd = ctx[this->pathEnd];
-            for (uint32_t i = ctx[nFixed]; i < succ.size(); i++) {
+            DomainChange change = DomainChange::none;
+
+            for (uint32_t i = nFixed; i < succ.size(); i++) {
                 uint32_t u = notFixed[i];
                 if (ctx[ctx[succ][u]].fixed()) {
                     int32_t v = ctx[ctx[succ][u]].min();
-                    std::swap(notFixed[ctx[nFixed]++], notFixed[i]);
-                    if (ctx[nFixed] < succ.size() - 1) { // Prevent cycle
+                    std::swap(notFixed[nFixed++], notFixed[i]);
+                    if (nFixed < succ.size() - 1) { // Prevent cycle
                         uint32_t src = pathEnd[u];
                         uint32_t dst = pathEnd[v];
                         pathEnd[src] = dst;
@@ -52,6 +54,8 @@ namespace cp {
                     }
                 }
             }
+
+            ctx[this->nFixed] = nFixed;
             return change;
         }
 
