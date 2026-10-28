@@ -74,7 +74,8 @@ namespace cp {
                 if constexpr (std::tuple_element_t<i, std::tuple<Constraints...>>::parallel) {
                     // Propagate each constraint in parallel with a group of threads
                     for (uint32_t j = 0; j < std::get<i>(sizes); j++) {
-                        change |= std::get<i>(constraints)[j].propagate(ctx);
+                        auto constraint = std::get<i>(constraints)[j];
+                        change |= constraint.propagate(ctx);
                         if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) {
                             return DomainChange::inconsistency;
                         }
@@ -83,7 +84,8 @@ namespace cp {
                 else {
                     // Propagate constraints by batches in parallel with a group of threads
                     for (uint32_t j = ctx.item.get_local_id(0); j < std::get<i>(sizes); j += ctx.item.get_local_range(0)) {
-                        change |= std::get<i>(constraints)[j].propagate(ctx);
+                        auto constraint = std::get<i>(constraints)[j];
+                        change |= constraint.propagate(ctx);
                     }
                     change = groupChange(ctx.item.get_group(), change);
                     if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) {

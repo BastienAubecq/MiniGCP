@@ -65,15 +65,16 @@ namespace cp {
 
         DomainChange propagate(Context ctx) const {
             uint32_t nFixed = ctx[this->nFixed];
+            uint32_t n = variables.size();
             IntVarBitsetIdx* vars = ctx[variables];
             DomainChange change = DomainChange::none;
 
-            for (uint32_t b = nFixed; b < variables.size(); b += ctx.item.get_local_range(0)) {
+            for (uint32_t b = nFixed; b < n; b += ctx.item.get_local_range(0)) {
                 uint32_t i = b + ctx.item.get_local_id(0);
                 std::optional<uint32_t> fixed;
                 do {
                     // Broadcast any fixed variable
-                    bool broadcast = i >= nFixed && i < variables.size() && ctx[vars[i]].fixed();
+                    bool broadcast = i >= nFixed && i < n && ctx[vars[i]].fixed();
                     fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
                     
                     if (fixed) {
@@ -82,9 +83,10 @@ namespace cp {
 
                         // Remove fixed value from other variables
                         int32_t v = ctx[vars[nFixed++]].min();
-                        for (uint32_t j = nFixed + ctx.item.get_local_id(0); j < variables.size(); j += ctx.item.get_local_range(0)) {
+                        for (uint32_t j = nFixed + ctx.item.get_local_id(0); j < n; j += ctx.item.get_local_range(0)) {
                             change |= ctx[vars[j]].remove(v);
                         }
+                        sycl::group_barrier(ctx.item.get_group());
                     }
                 } while (fixed);
             }

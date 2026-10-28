@@ -29,13 +29,14 @@ namespace cp {
 
         DomainChange propagate(Context ctx) const {
             uint32_t nFixed = ctx[this->nFixed];
+            uint32_t n = this->x.size();
             int32_t sumFixed = ctx[this->sumFixed];
             IntVarIntervalIdx* x = ctx[this->x];
             
             // Get sum of min and max values of x
             int32_t sumMin = sumFixed;
             int32_t sumMax = sumFixed;
-            for (uint32_t i = nFixed; i < this->x.size(); i++) {
+            for (uint32_t i = nFixed; i < n; i++) {
                 int32_t min = ctx[x[i]].min();
                 sumMin += min;
                 sumMax += ctx[x[i]].max();
@@ -51,7 +52,7 @@ namespace cp {
             change |= ctx[y].removeAbove(sumMax);
             sumMin -= ctx[y].max();
             sumMax -= ctx[y].min();
-            for (uint32_t i = nFixed; i < this->x.size(); i++) {
+            for (uint32_t i = nFixed; i < n; i++) {
                 int32_t min = ctx[x[i]].min();
                 int32_t max = ctx[x[i]].max();
                 change |= ctx[x[i]].removeBelow(-(sumMax - max));
@@ -88,15 +89,16 @@ namespace cp {
 
         DomainChange propagate(Context ctx) const {
             uint32_t nFixed = ctx[this->nFixed];
+            uint32_t n = this->x.size();
             int32_t sumFixed = ctx[this->sumFixed];
             IntVarIntervalIdx* x = ctx[this->x];
             
             // Get sum of min and max values of x
             int32_t sumMin = ctx.item.get_local_id(0) == 0 ? sumFixed : 0;
             int32_t sumMax = ctx.item.get_local_id(0) == 0 ? sumFixed : 0;
-            for (uint32_t b = nFixed; b < this->x.size(); b += ctx.item.get_local_range(0)) {
+            for (uint32_t b = nFixed; b < n; b += ctx.item.get_local_range(0)) {
                 uint32_t i = b + ctx.item.get_local_id(0);
-                if (i < this->x.size()) {
+                if (i < n) {
                     sumMin += ctx[x[i]].min();
                     sumMax += ctx[x[i]].max();
                 }
@@ -104,7 +106,7 @@ namespace cp {
                 // Swap fixed variables sequentially
                 std::optional<uint32_t> fixed;
                 do {
-                    bool broadcast = i >= nFixed && i < this->x.size() && ctx[x[i]].fixed();
+                    bool broadcast = i >= nFixed && i < n && ctx[x[i]].fixed();
                     fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
                     if (fixed) {
                         if (ctx.item.get_local_id(0) == 0) {
@@ -128,7 +130,7 @@ namespace cp {
             sycl::group_barrier(ctx.item.get_group());
             sumMin -= ctx[y].max();
             sumMax -= ctx[y].min();
-            for (uint32_t i = nFixed + ctx.item.get_local_id(0); i < this->x.size(); i += ctx.item.get_local_range(0)) {
+            for (uint32_t i = nFixed + ctx.item.get_local_id(0); i < n; i += ctx.item.get_local_range(0)) {
                 int32_t min = ctx[x[i]].min();
                 int32_t max = ctx[x[i]].max();
                 change |= ctx[x[i]].removeBelow(-(sumMax - max));
