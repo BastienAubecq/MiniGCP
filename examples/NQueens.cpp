@@ -34,6 +34,33 @@ static auto getNQueensSolver(uint32_t n, DeviceParams params) {
 }
 
 
+/**
+ * @brief Get a solver for an NQueens problem instance.
+ * The problem is decomposed into binary constraints.
+ * @param n Number of queens
+ * @param params Device parameters
+ * @return The solver
+ */
+static auto getNQueensBinarySolver(uint32_t n, DeviceParams params) {
+    Model<NotEqual> model(ProblemType::satisfaction);
+    vector<IntVarBitsetIdx> variables;
+    for (uint32_t i = 0; i < n; i++) {
+        variables.push_back(model.intVarBitset(n));
+    }
+    for (uint32_t i = 0; i < n; i++) {
+        for (uint32_t j = 0; j < i; j++) {
+            model.constraint(variables[i] != variables[j]);
+            model.constraint(variables[i] + i != variables[j] + j);
+            model.constraint(variables[i] - i != variables[j] - j);
+        }
+    }
+    model.output = model.array<Scope::global, IntVarBitsetIdx>(variables);
+
+    FirstFail strategy(model.output);
+    return DFSSolver(model, strategy, params);
+}
+
+
 #ifndef NO_MAIN
 int main(int argc, char const* const* argv) {
     if (argc < 2 || argc > 3) {

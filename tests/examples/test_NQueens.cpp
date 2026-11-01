@@ -5,7 +5,6 @@
 
 #define NO_MAIN
 #include "NQueens.cpp"
-#include "NQueens_binary.cpp"
 
 
 static void requireFeasible(uint32_t n, span<int32_t const> solution) {
