@@ -13,12 +13,12 @@ using namespace cp;
  * @param params Device parameters
  * @return The solver
  */
-static auto getSolver(uint32_t n, DeviceParams params) {
+static auto getNQueensSolver(uint32_t n, DeviceParams params) {
     Model<AllDifferentFWC> model(ProblemType::satisfaction);
     vector<IntVarBitsetIdx> variables;
     vector<IntVarBitsetIdx> diag1;
     vector<IntVarBitsetIdx> diag2;
-    for (int i = 0; i < n; i++) {
+    for (uint32_t i = 0; i < n; i++) {
         IntVarBitsetIdx q = model.intVarBitset(n);
         variables.push_back(q);
         diag1.push_back(q + i);
@@ -44,7 +44,7 @@ int main(int argc, char const* const* argv) {
     uint32_t n = std::stoi(argv[1]);
     uint32_t limit = argc == 3 ? std::stoi(argv[2]) : UINT32_MAX;
     DeviceParams params(sycl::cpu_selector_v, 1, 1);
-    auto solver = getSolver(n, params);
+    auto solver = getNQueensSolver(n, params);
     solver.solve([=](SearchStatistics stats) { return stats.nSolutions >= limit; });
 
     cout << solver.getStatistics() << endl;

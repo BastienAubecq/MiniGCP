@@ -38,6 +38,7 @@ public:
 
     explicit TSPInstance(char const* path) {
         ifstream input(path);
+        input.exceptions(std::ios::failbit);
         input >> n;
         for (uint32_t i = 0; i < n; i++) {
             for (uint32_t j = 0; j < n; j++) {
@@ -60,7 +61,7 @@ public:
  * @param params Device parameters
  * @return The solver
  */
-static auto getSolver(TSPInstance const& instance, DeviceParams params) {
+static auto getTSPSolver(TSPInstance const& instance, DeviceParams params) {
     Model<AllDifferentFWC, Circuit, Element1D, Sum> model(ProblemType::minimization);
     uint32_t n = instance.n;
 
@@ -93,7 +94,7 @@ int main(int argc, char const* const* argv) {
 
     TSPInstance instance(argv[1]);
     DeviceParams params(sycl::cpu_selector_v, 1, 1);
-    auto solver = getSolver(instance, params);
+    auto solver = getTSPSolver(instance, params);
     solver.solve(noLimit);
 
     cout << solver.getStatistics() << endl;

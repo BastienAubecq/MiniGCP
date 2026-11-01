@@ -5,6 +5,7 @@
 
 #define NO_MAIN
 #include "NQueens.cpp"
+#include "NQueens_binary.cpp"
 
 
 static void requireFeasible(uint32_t n, span<int32_t const> solution) {
@@ -22,7 +23,7 @@ static void requireFeasible(uint32_t n, span<int32_t const> solution) {
 
 TEST_CASE("NQueens feasible", "[NQueens][example]") {
     for (uint32_t n = 10; n <= 100; n += 5) {
-        auto solver = getSolver(n, testParams);
+        auto solver = getNQueensSolver(n, testParams);
         solver.solve(firstSolution);
 
         REQUIRE(solver.getStatistics().nSolutions == 1);
@@ -31,7 +32,29 @@ TEST_CASE("NQueens feasible", "[NQueens][example]") {
 }
 
 TEST_CASE("NQueens statistics", "[NQueens][example]") {
-    auto solver = getSolver(12, testParams);
+    auto solver = getNQueensSolver(12, testParams);
+    solver.solve(noLimit);
+    SearchStatistics stats = solver.getStatistics();
+
+    REQUIRE(stats.nSolutions == 14200);
+    REQUIRE(stats.nNodes == 232163);
+    REQUIRE(stats.nFailures == 101882);
+    REQUIRE(stats.completed);
+}
+
+
+TEST_CASE("NQueens_binary feasible", "[NQueens_binary][example]") {
+    for (uint32_t n = 10; n <= 100; n += 5) {
+        auto solver = getNQueensBinarySolver(n, testParams);
+        solver.solve(firstSolution);
+
+        REQUIRE(solver.getStatistics().nSolutions == 1);
+        requireFeasible(n, solver.getSolution());
+    }
+}
+
+TEST_CASE("NQueens_binary statistics", "[NQueens_binary][example]") {
+    auto solver = getNQueensBinarySolver(12, testParams);
     solver.solve(noLimit);
     SearchStatistics stats = solver.getStatistics();
 

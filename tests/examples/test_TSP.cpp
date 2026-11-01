@@ -28,7 +28,7 @@ static void requireFeasible(TSPInstance const& instance, int32_t objective, std:
 TEST_CASE("TSP feasible", "[TSP][example]") {
     for (uint32_t n = 10; n <= 100; n += 5) {
         TSPInstance instance(n, 100);
-        auto solver = getSolver(instance, testParams);
+        auto solver = getTSPSolver(instance, testParams);
         solver.solve([](SearchStatistics stats) { return stats.nSolutions > 0 && stats.nNodes >= 10000; });
 
         REQUIRE(solver.getStatistics().nSolutions > 0);
@@ -38,7 +38,7 @@ TEST_CASE("TSP feasible", "[TSP][example]") {
 
 TEST_CASE("TSP statistics", "[TSP][example]") {
     TSPInstance instance("../../data/TSP/tsp_15.txt");
-    auto solver = getSolver(instance, testParams);
+    auto solver = getTSPSolver(instance, testParams);
     solver.solve(noLimit);
     SearchStatistics stats = solver.getStatistics();
 
