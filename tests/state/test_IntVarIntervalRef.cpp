@@ -20,7 +20,7 @@ TEST_CASE("IntVarIntervalRef allocation size", "[IntVarIntervalRef][host]") {
     REQUIRE(v.min() == 0);
     REQUIRE(v.max() == 9);
     REQUIRE(v.size() == 10);
-    REQUIRE_FALSE(v.fixed());
+    REQUIRE_FALSE(v.value());
 }
 
 TEST_CASE("IntVarIntervalRef allocation min max", "[IntVarIntervalRef][host]") {
@@ -41,7 +41,7 @@ TEST_CASE("IntVarIntervalRef fix simple", "[IntVarIntervalRef][host]") {
     REQUIRE(v.min() == 5);
     REQUIRE(v.max() == 5);
     REQUIRE(v.size() == 1);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 5);
 }
 
 TEST_CASE("IntVarIntervalRef fix already fixed", "[IntVarIntervalRef][host]") {
@@ -49,7 +49,7 @@ TEST_CASE("IntVarIntervalRef fix already fixed", "[IntVarIntervalRef][host]") {
     IntVarIntervalRef v = allocator[allocator.intVarInterval(1)];
 
     REQUIRE(v.fix(0) == DomainChange::none);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 0);
 }
 
 TEST_CASE("IntVarIntervalRef fix outside bounds", "[IntVarIntervalRef][host]") {
@@ -132,7 +132,7 @@ TEST_CASE("AtomicIntVarIntervalRef fix simple", "[AtomicIntVarIntervalRef]") {
     REQUIRE(v.min() == 5);
     REQUIRE(v.max() == 5);
     REQUIRE(v.size() == 1);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 5);
 }
 
 TEST_CASE("AtomicIntVarIntervalRef fix already fixed", "[AtomicIntVarIntervalRef]") {
@@ -146,7 +146,7 @@ TEST_CASE("AtomicIntVarIntervalRef fix already fixed", "[AtomicIntVarIntervalRef
     })[0];
 
     REQUIRE(c == DomainChange::none);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 0);
 }
 
 TEST_CASE("AtomicIntVarIntervalRef fix outside bounds", "[AtomicIntVarIntervalRef]") {
@@ -266,7 +266,7 @@ TEST_CASE("AtomicIntVarIntervalRef concurrent fix same", "[AtomicIntVarIntervalR
     REQUIRE(v.min() == 5);
     REQUIRE(v.max() == 5);
     REQUIRE(v.size() == 1);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 5);
 }
 
 TEST_CASE("AtomicIntVarIntervalRef concurrent fix different", "[AtomicIntVarIntervalRef][concurrent]") {

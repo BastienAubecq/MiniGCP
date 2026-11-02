@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <span>
+#include <optional>
 #include "sycl/sycl.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
 #include "MiniGCP/state/IntVarBitsetIdx.hpp"
@@ -51,50 +52,52 @@ namespace cp {
         }
         
         /**
-         * @brief Whether the domain contains a single value
+         * @brief Check if the domain contains a single value and, if so, return it
          */
-        bool fixed() const {
-            return size() == 1;
+        std::optional<int32_t> value() const {
+            int32_t m = min();
+            if (m == max()) return m;
+            return {};
         }
 
         /**
          * @brief Whether the domain contains a value
-         * @param value The value
+         * @param v The value
          */
-        bool contains(int32_t value) const {
-            if (value < min() || value > max()) return false;
-            value -= offset;
-            return ptr[3 + value / 32] & ((int32_t)1 << value % 32);
+        bool contains(int32_t v) const {
+            if (v < min() || v > max()) return false;
+            v -= offset;
+            return ptr[3 + v / 32] & ((int32_t)1 << v % 32);
         }
 
         
         /**
          * @brief Remove a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange remove(int32_t value) const {
-            if (!contains(value)) return DomainChange::none;
-            value -= offset;
-            ptr[3 + value / 32] &= ~((int32_t)1 << value % 32);
-            if (value == ptr[0]) updateMin();
-            if (value == ptr[1]) updateMax();
+        DomainChange remove(int32_t v) const {
+            if (!contains(v)) return DomainChange::none;
+            v -= offset;
+            ptr[3 + v / 32] &= ~((int32_t)1 << v % 32);
+            if (v == ptr[0]) updateMin();
+            if (v == ptr[1]) updateMax();
             return updateSize(1);
         }
 
         /**
          * @brief Fix the domain to a single value
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange fix(int32_t value) const {
-            if (!contains(value)) return DomainChange::inconsistency;
-            if (value == min() && value == max()) return DomainChange::none;
-            value -= offset;
+        DomainChange fix(int32_t v) const {
+            if (!contains(v)) return DomainChange::inconsistency;
+            if (v == min() && v == max()) return DomainChange::none;
+            v -= offset;
 
             // Clear bits
-            int32_t index = 3 + value / 32;
-            int32_t bit = (int32_t)1 << value % 32;
+            int32_t index = 3 + v / 32;
+            int32_t bit = (int32_t)1 << v % 32;
             ptr[index] = bit;
             for (int i = 3 + ptr[0] / 32; i < index; i++) {
                 ptr[i] = 0;
@@ -104,8 +107,8 @@ namespace cp {
             }
 
             // Update min, max, size
-            ptr[0] = value;
-            ptr[1] = value;
+            ptr[0] = v;
+            ptr[1] = v;
             ptr[2] = 1;
 
             return DomainChange::changed;
@@ -113,17 +116,17 @@ namespace cp {
         
         /**
          * @brief Remove all values below a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange removeBelow(int32_t value) const {
-            if (value <= min()) return DomainChange::none;
-            if (value > max()) return DomainChange::inconsistency;
-            value -= offset;
+        DomainChange removeBelow(int32_t v) const {
+            if (v <= min()) return DomainChange::none;
+            if (v > max()) return DomainChange::inconsistency;
+            v -= offset;
 
             // Clear and count bits
-            int32_t index = 3 + value / 32;
-            int32_t bits = ((int32_t)1 << value % 32) - 1;
+            int32_t index = 3 + v / 32;
+            int32_t bits = ((int32_t)1 << v % 32) - 1;
             int32_t removed = sycl::popcount(ptr[index] & bits);
             ptr[index] &= ~bits;
             for (int i = 3 + ptr[0] / 32; i < index; i++) {
@@ -131,24 +134,24 @@ namespace cp {
                 ptr[i] = 0;
             }
 
-            ptr[0] = value;
+            ptr[0] = v;
             updateMin();
             return updateSize(removed);
         }
 
         /**
          * @brief Remove all values above a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange removeAbove(int32_t value) const {
-            if (value >= max()) return DomainChange::none;
-            if (value < min()) return DomainChange::inconsistency;
-            value -= offset;
+        DomainChange removeAbove(int32_t v) const {
+            if (v >= max()) return DomainChange::none;
+            if (v < min()) return DomainChange::inconsistency;
+            v -= offset;
 
             // Clear and count bits
-            int32_t index = 3 + value / 32;
-            int32_t bits = ~(((int32_t)1 << value % 32) - 1) << 1;
+            int32_t index = 3 + v / 32;
+            int32_t bits = ~(((int32_t)1 << v % 32) - 1) << 1;
             int32_t removed = sycl::popcount(ptr[index] & bits);
             ptr[index] &= ~bits;
             for (int i = index + 1; i <= 3 + ptr[1] / 32; i++) {
@@ -156,7 +159,7 @@ namespace cp {
                 ptr[i] = 0;
             }
 
-            ptr[1] = value;
+            ptr[1] = v;
             updateMax();
             return updateSize(removed);
         }
@@ -252,33 +255,35 @@ namespace cp {
         }
         
         /**
-         * @brief Whether the domain contains a single value
+         * @brief Check if the domain contains a single value and, if so, return it
          */
-        bool fixed() const {
-            return size() == 1;
+        std::optional<int32_t> value() const {
+            int32_t m = min();
+            if (m == max()) return m;
+            return {};
         }
 
         /**
          * @brief Whether the domain contains a value
-         * @param value The value
+         * @param v The value
          */
-        bool contains(int32_t value) const {
-            if (value < min() || value > max()) return false;
-            value -= offset;
-            return atomic(ptr[3 + value / 32]).load() & ((int32_t)1 << value % 32);
+        bool contains(int32_t v) const {
+            if (v < min() || v > max()) return false;
+            v -= offset;
+            return atomic(ptr[3 + v / 32]).load() & ((int32_t)1 << v % 32);
         }
 
         
         /**
          * @brief Remove a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange remove(int32_t value) const {
-            if (value < min() || value > max()) return DomainChange::none;
-            value -= offset;
-            int32_t bit = (int32_t)1 << value % 32;
-            int32_t prev = atomic(ptr[3 + value / 32]).fetch_and(~bit); // Clear bit
+        DomainChange remove(int32_t v) const {
+            if (v < min() || v > max()) return DomainChange::none;
+            v -= offset;
+            int32_t bit = (int32_t)1 << v % 32;
+            int32_t prev = atomic(ptr[3 + v / 32]).fetch_and(~bit); // Clear bit
             if (!(prev & bit)) return DomainChange::none;
 
             // updateSize must be before updateMin/Max so that if 2 threads update the bitset concurrently,
@@ -291,21 +296,21 @@ namespace cp {
 
         /**
          * @brief Fix the domain to a single value
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange fix(int32_t value) const {
-            value -= offset;
+        DomainChange fix(int32_t v) const {
+            v -= offset;
             int32_t min = atomic(ptr[0]).load();
             int32_t max = atomic(ptr[1]).load();
-            if (value == min && value == max) return DomainChange::none;
-            if (value < min || value > max) return DomainChange::inconsistency;
-            atomic(ptr[0]).fetch_max(value); // Update min
-            atomic(ptr[1]).fetch_min(value); // Update max
+            if (v == min && v == max) return DomainChange::none;
+            if (v < min || v > max) return DomainChange::inconsistency;
+            atomic(ptr[0]).fetch_max(v); // Update min
+            atomic(ptr[1]).fetch_min(v); // Update max
 
             // Clear and count bits
-            int32_t index = 3 + value / 32;
-            int32_t bit = (int32_t)1 << value % 32;
+            int32_t index = 3 + v / 32;
+            int32_t bit = (int32_t)1 << v % 32;
             int32_t removed = sycl::popcount(atomic(ptr[index]).fetch_and(bit) & ~bit);
             for (int i = 3 + min / 32; i < index; i++) {
                 removed += sycl::popcount(atomic(ptr[i]).exchange(0));
@@ -319,19 +324,19 @@ namespace cp {
         
         /**
          * @brief Remove all values below a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange removeBelow(int32_t value) const {
-            value -= offset;
+        DomainChange removeBelow(int32_t v) const {
+            v -= offset;
             int32_t min = atomic(ptr[0]).load();
-            if (value <= min) return DomainChange::none;
-            if (value > atomic(ptr[1]).load()) return DomainChange::inconsistency;
-            atomic(ptr[0]).fetch_max(value); // Update min
+            if (v <= min) return DomainChange::none;
+            if (v > atomic(ptr[1]).load()) return DomainChange::inconsistency;
+            atomic(ptr[0]).fetch_max(v); // Update min
 
             // Clear and count bits
-            int32_t index = 3 + value / 32;
-            int32_t bits = ((int32_t)1 << value % 32) - 1;
+            int32_t index = 3 + v / 32;
+            int32_t bits = ((int32_t)1 << v % 32) - 1;
             int32_t removed = sycl::popcount(atomic(ptr[index]).fetch_and(~bits) & bits);
             for (int i = 3 + min / 32; i < index; i++) {
                 removed += sycl::popcount(atomic(ptr[i]).exchange(0));
@@ -344,19 +349,19 @@ namespace cp {
 
         /**
          * @brief Remove all values above a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange removeAbove(int32_t value) const {
-            value -= offset;
+        DomainChange removeAbove(int32_t v) const {
+            v -= offset;
             int32_t max = atomic(ptr[1]).load();
-            if (value >= max) return DomainChange::none;
-            if (value < atomic(ptr[0]).load()) return DomainChange::inconsistency;
-            atomic(ptr[1]).fetch_min(value); // Update max
+            if (v >= max) return DomainChange::none;
+            if (v < atomic(ptr[0]).load()) return DomainChange::inconsistency;
+            atomic(ptr[1]).fetch_min(v); // Update max
 
             // Clear and count bits
-            int32_t index = 3 + value / 32;
-            int32_t bits = ~(((int32_t)1 << value % 32) - 1) << 1;
+            int32_t index = 3 + v / 32;
+            int32_t bits = ~(((int32_t)1 << v % 32) - 1) << 1;
             int32_t removed = sycl::popcount(atomic(ptr[index]).fetch_and(~bits) & bits);
             for (int i = index + 1; i <= 3 + max / 32; i++) {
                 removed += sycl::popcount(atomic(ptr[i]).exchange(0));
@@ -369,7 +374,12 @@ namespace cp {
 
 
         /*void print() const {
-            printf("%d %d %d %b\n", ptr[0], ptr[1], ptr[2], ptr[3]);
+            printf("%d %d %d\n", ptr[0], ptr[1], ptr[2]);
+            for (uint32_t i = ptr[0]; i <= ptr[1]; i++) {
+                if (contains(i)) printf("1");
+                else printf("0");
+            }
+            printf("\n");
         }*/
 
 

@@ -93,7 +93,7 @@ int main(int argc, char const* const* argv) {
     }
 
     TSPInstance instance(argv[1]);
-    DeviceParams params(sycl::cpu_selector_v, 1, 1);
+    DeviceParams params(sycl::gpu_selector_v, 64, 1);
     auto solver = getTSPSolver(instance, params);
     solver.solve(noLimit);
 

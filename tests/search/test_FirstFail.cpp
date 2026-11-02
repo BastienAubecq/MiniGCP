@@ -22,7 +22,7 @@ TEST_CASE("FirstFail unfixed variable", "[FirstFail]") {
     })[0];
 
     REQUIRE(d);
-    REQUIRE(allocator[selected].fixed());
+    REQUIRE(allocator[selected].value() == 0);
 }
 
 TEST_CASE("FirstFail smallest domain", "[FirstFail]") {
@@ -40,7 +40,7 @@ TEST_CASE("FirstFail smallest domain", "[FirstFail]") {
     })[0];
 
     REQUIRE(d);
-    REQUIRE(allocator[small].fixed());
+    REQUIRE(allocator[small].value() == 0);
 }
 
 TEST_CASE("FirstFail all fixed", "[FirstFail]") {
@@ -63,7 +63,7 @@ TEST_CASE("FirstFail concurrent few variables", "[FirstFail][concurrent]") {
     for (int i = 0; i < 10; i++) {
         variables.push_back(allocator.intVarBitset(10));
     }
-    allocator[variables[5]].removeBelow(5);
+    allocator[variables[5]].removeAbove(5);
     FirstFail strategy(allocator.array<Scope::global, IntVarBitsetIdx>(variables));
 
     bool d = runOnDevice<char>(allocator, 16, [=](Context ctx) {
@@ -74,7 +74,7 @@ TEST_CASE("FirstFail concurrent few variables", "[FirstFail][concurrent]") {
     })[0];
 
     REQUIRE(d);
-    REQUIRE(allocator[variables[5]].fixed());
+    REQUIRE(allocator[variables[5]].value() == 0);
 }
 
 TEST_CASE("FirstFail concurrent many variables", "[FirstFail][concurrent]") {
@@ -83,7 +83,7 @@ TEST_CASE("FirstFail concurrent many variables", "[FirstFail][concurrent]") {
     for (int i = 0; i < 100; i++) {
         variables.push_back(allocator.intVarBitset(10));
     }
-    allocator[variables[5]].removeBelow(5);
+    allocator[variables[5]].removeAbove(5);
     FirstFail strategy(allocator.array<Scope::global, IntVarBitsetIdx>(variables));
 
     bool d = runOnDevice<char>(allocator, 16, [=](Context ctx) {
@@ -94,5 +94,5 @@ TEST_CASE("FirstFail concurrent many variables", "[FirstFail][concurrent]") {
     })[0];
 
     REQUIRE(d);
-    REQUIRE(allocator[variables[5]].fixed());
+    REQUIRE(allocator[variables[5]].value() == 0);
 }

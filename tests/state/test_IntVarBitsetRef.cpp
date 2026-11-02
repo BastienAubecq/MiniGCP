@@ -20,7 +20,7 @@ TEST_CASE("IntVarBitsetRef allocation size simple", "[IntVarBitsetRef][host]") {
     REQUIRE(v.min() == 0);
     REQUIRE(v.max() == 9);
     REQUIRE(v.size() == 10);
-    REQUIRE_FALSE(v.fixed());
+    REQUIRE_FALSE(v.value());
     for (int i = 0; i < 10; i++) REQUIRE(v.contains(i));
     REQUIRE_FALSE(v.contains(-1));
     REQUIRE_FALSE(v.contains(10));
@@ -131,7 +131,7 @@ TEST_CASE("IntVarBitsetRef fix simple", "[IntVarBitsetRef][host]") {
     REQUIRE(v.min() == 5);
     REQUIRE(v.max() == 5);
     REQUIRE(v.size() == 1);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 5);
     REQUIRE(v.contains(5));
     for (int32_t i = 0; i < 5; i++) REQUIRE_FALSE(v.contains(i));
     for (int32_t i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
@@ -142,7 +142,7 @@ TEST_CASE("IntVarBitsetRef fix already fixed", "[IntVarBitsetRef][host]") {
     IntVarBitsetRef v = allocator[allocator.intVarBitset(1)];
 
     REQUIRE(v.fix(0) == DomainChange::none);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 0);
 }
 
 TEST_CASE("IntVarBitsetRef fix outside bounds", "[IntVarBitsetRef][host]") {
@@ -328,7 +328,7 @@ TEST_CASE("AtomicIntVarBitsetRef fix simple", "[AtomicIntVarBitsetRef]") {
     REQUIRE(v.min() == 5);
     REQUIRE(v.max() == 5);
     REQUIRE(v.size() == 1);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 5);
     REQUIRE(v.contains(5));
     for (int32_t i = 0; i < 5; i++) REQUIRE_FALSE(v.contains(i));
     for (int32_t i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
@@ -345,7 +345,7 @@ TEST_CASE("AtomicIntVarBitsetRef fix already fixed", "[AtomicIntVarBitsetRef]") 
     })[0];
 
     REQUIRE(c == DomainChange::none);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 0);
 }
 
 TEST_CASE("AtomicIntVarBitsetRef fix outside bounds", "[AtomicIntVarBitsetRef]") {
@@ -513,7 +513,7 @@ TEST_CASE("AtomicIntVarBitsetRef concurrent fix same", "[AtomicIntVarBitsetRef][
     REQUIRE(v.min() == 5);
     REQUIRE(v.max() == 5);
     REQUIRE(v.size() == 1);
-    REQUIRE(v.fixed());
+    REQUIRE(v.value() == 5);
 }
 
 TEST_CASE("AtomicIntVarBitsetRef concurrent fix different", "[AtomicIntVarBitsetRef][concurrent]") {

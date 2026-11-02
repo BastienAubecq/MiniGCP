@@ -85,6 +85,7 @@ namespace cp {
          * @return Whether the current node is a solution
          */
         bool moveLeft(Context ctx) const {
+            //if (ctx.item.get_local_id(0) == 0) printf("Move left\n");
             std::optional<DecisionOf<Strategy>> decision = strategy.split(ctx);
             if (decision) {
                 if (!data.push(ctx, *decision)) {
@@ -97,7 +98,7 @@ namespace cp {
                 int32_t obj = type == ProblemType::satisfaction ? 1 : ctx[objective].max();
                 data.solution(ctx, obj);
                 if (ctx.item.get_local_id(0) == 0) {
-                    //sycl::ext::oneapi::experimental::printf("Objective: %d\n", obj);
+                    //printf("Objective: %d\n", obj);
                     statistics->addSolution();
                     statistics->updateObjective(type, obj);
                 }
@@ -111,6 +112,7 @@ namespace cp {
          * @return Whether the search is completed
          */
         bool moveRight(Context ctx) const {
+            //if (ctx.item.get_local_id(0) == 0) printf("Move right\n");
             std::optional<DecisionOf<Strategy>> decision = data.pop(ctx);
             if (decision) {
                 if (ctx.item.get_local_id(0) == 0) decision->applyRight(ctx);

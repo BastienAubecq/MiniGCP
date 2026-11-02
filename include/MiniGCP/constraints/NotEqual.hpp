@@ -18,12 +18,10 @@ namespace cp {
             x(x), y(y) {}
 
         DomainChange propagate(Context ctx) const {
-            if (ctx[x].fixed()) {
-                return ctx[y].remove(ctx[x].min());
-            }
-            if (ctx[y].fixed()) {
-                return ctx[x].remove(ctx[y].min());
-            }
+            std::optional<int32_t> v = ctx[x].value(); 
+            if (v) return ctx[y].remove(*v);
+            v = ctx[y].value();
+            if (v) return ctx[x].remove(*v);
             return DomainChange::none;
         }
 

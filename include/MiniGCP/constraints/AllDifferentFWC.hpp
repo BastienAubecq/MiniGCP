@@ -31,11 +31,11 @@ namespace cp {
             DomainChange change = DomainChange::none;
 
             for (uint32_t i = nFixed; i < variables.size(); i++) {
-                if (ctx[vars[i]].fixed()) {
-                    int32_t v = ctx[vars[i]].min();
+                std::optional<int32_t> v = ctx[vars[i]].value();
+                if (v) {
                     std::swap(vars[nFixed++], vars[i]);
                     for (uint32_t j = nFixed; j < variables.size(); j++) {
-                        change |= ctx[vars[j]].remove(v);
+                        change |= ctx[vars[j]].remove(*v);
                     }
                 }
             }
@@ -74,7 +74,7 @@ namespace cp {
                 std::optional<uint32_t> fixed;
                 do {
                     // Broadcast any fixed variable
-                    bool broadcast = i >= nFixed && i < n && ctx[vars[i]].fixed();
+                    bool broadcast = i >= nFixed && i < n && ctx[vars[i]].value();
                     fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
                     
                     if (fixed) {

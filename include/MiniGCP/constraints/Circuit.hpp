@@ -42,12 +42,12 @@ namespace cp {
 
             for (uint32_t i = nFixed; i < succ.size(); i++) {
                 uint32_t u = notFixed[i];
-                if (ctx[ctx[succ][u]].fixed()) {
-                    int32_t v = ctx[ctx[succ][u]].min();
+                std::optional<int32_t> v = ctx[ctx[succ][u]].value();
+                if (v) {
                     std::swap(notFixed[nFixed++], notFixed[i]);
                     if (nFixed < succ.size() - 1) { // Prevent cycle
                         uint32_t src = pathEnd[u];
-                        uint32_t dst = pathEnd[v];
+                        uint32_t dst = pathEnd[*v];
                         pathEnd[src] = dst;
                         pathEnd[dst] = src;
                         change |= ctx[ctx[succ][dst]].remove(src);
@@ -101,18 +101,23 @@ namespace cp {
                 std::optional<uint32_t> fixed;
                 do {
                     // Broadcast any fixed variable
-                    uint32_t u = notFixed[i];
-                    bool broadcast = i >= nFixed && i < succ.size() && ctx[ctx[succ][u]].fixed();
-                    fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
+                    uint32_t u;
+                    std::optional<int32_t> v;
+                    std::optional<uint32_t> broadcast;
+                    if (i >= nFixed && i < succ.size()) {
+                        u = notFixed[i];
+                        v = ctx[ctx[succ][u]].value();
+                        if (v) broadcast = i;
+                    }
+                    fixed = groupBroadcastAny(ctx, broadcast);
                     
                     if (fixed) {
-                        if (ctx.item.get_local_id(0) == 0) {
-                            u = notFixed[*fixed];
-                            uint32_t v = ctx[ctx[succ][u]].min();
-                            std::swap(notFixed[nFixed], notFixed[*fixed]);
+                        if (i == *fixed) {
+                            u = notFixed[i];
+                            std::swap(notFixed[nFixed], notFixed[i]);
                             if (nFixed < succ.size() - 2) { // Prevent cycle
                                 uint32_t src = pathEnd[u];
-                                uint32_t dst = pathEnd[v];
+                                uint32_t dst = pathEnd[*v];
                                 pathEnd[src] = dst;
                                 pathEnd[dst] = src;
                                 change |= ctx[ctx[succ][dst]].remove(src);

@@ -70,9 +70,9 @@ int main(int argc, char const* const* argv) {
 
     uint32_t n = std::stoi(argv[1]);
     uint32_t limit = argc == 3 ? std::stoi(argv[2]) : UINT32_MAX;
-    DeviceParams params(sycl::cpu_selector_v, 1, 1);
+    DeviceParams params(sycl::gpu_selector_v, 32, 1);
     auto solver = getNQueensSolver(n, params);
-    solver.solve([=](SearchStatistics stats) { return stats.nSolutions >= limit; });
+    solver.solve([=](SearchStatistics stats) { return stats.nNodes >= limit; });
 
     cout << solver.getStatistics() << endl;
     for (int32_t s : solver.getSolution()) {

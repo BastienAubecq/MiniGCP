@@ -38,9 +38,10 @@ namespace cp {
             int32_t sumMax = sumFixed;
             for (uint32_t i = nFixed; i < n; i++) {
                 int32_t min = ctx[x[i]].min();
+                int32_t max = ctx[x[i]].max();
                 sumMin += min;
-                sumMax += ctx[x[i]].max();
-                if (ctx[x[i]].fixed()) {
+                sumMax += max;
+                if (min == max) {
                     std::swap(x[nFixed++], x[i]);
                     sumFixed += min;
                 }
@@ -90,7 +91,7 @@ namespace cp {
         DomainChange propagate(Context ctx) const {
             uint32_t nFixed = ctx[this->nFixed];
             uint32_t n = this->x.size();
-            int32_t sumFixed = ctx[this->sumFixed];
+            int32_t& sumFixed = ctx[this->sumFixed];
             IntVarIntervalIdx* x = ctx[this->x];
             
             // Get sum of min and max values of x
@@ -106,12 +107,18 @@ namespace cp {
                 // Swap fixed variables sequentially
                 std::optional<uint32_t> fixed;
                 do {
-                    bool broadcast = i >= nFixed && i < n && ctx[x[i]].fixed();
-                    fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
+                    std::optional<int32_t> v;
+                    std::optional<uint32_t> broadcast;
+                    if (i >= nFixed && i < n) {
+                        v = ctx[x[i]].value();
+                        if (v) broadcast = i;
+                    }
+                    fixed = groupBroadcastAny(ctx, broadcast);
+
                     if (fixed) {
-                        if (ctx.item.get_local_id(0) == 0) {
-                            std::swap(x[nFixed], x[*fixed]);
-                            sumFixed += ctx[x[nFixed]].min();
+                        if (i == *fixed) {
+                            std::swap(x[nFixed], x[i]);
+                            sumFixed += *v;
                         }
                         nFixed++;
                         sycl::group_barrier(ctx.item.get_group());
@@ -137,10 +144,7 @@ namespace cp {
                 change |= ctx[x[i]].removeAbove(-(sumMin - min));
             }
 
-            if (ctx.item.get_local_id(0) == 0) {
-                ctx[this->nFixed] = nFixed;
-                ctx[this->sumFixed] = sumFixed;
-            }
+            if (ctx.item.get_local_id(0) == 0) ctx[this->nFixed] = nFixed;
             return groupChange(ctx.item.get_group(), change);
         }
 

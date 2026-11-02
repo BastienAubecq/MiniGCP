@@ -45,6 +45,7 @@ namespace cp {
         bool fixpoint(Context ctx) const {
             DomainChange change;
             do {
+                //if (ctx.item.get_local_id(0) == 0) printf("Propagate pass\n");
                 change = propagate(ctx);
                 if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) {
                     return true;

@@ -45,51 +45,53 @@ namespace cp {
          * @brief Get the number of values in the domain
          */
         int32_t size() const {
-            return ptr[1] - ptr[0] + 1;
+            return max() - min() + 1;
         }
 
         /**
-         * @brief Whether the domain contains a single value
+         * @brief Check if the domain contains a single value and, if so, return it
          */
-        bool fixed() const {
-            return min() == max();
+        std::optional<int32_t> value() const {
+            int32_t m = min();
+            if (m == max()) return m;
+            return {};
         }
 
 
         /**
          * @brief Fix the domain to a single value
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange fix(int32_t value) const {
-            if (value < min() || value > max()) return DomainChange::inconsistency;
-            if (fixed()) return DomainChange::none;
-            ptr[0] = value - offset;
-            ptr[1] = value - offset;
+        DomainChange fix(int32_t v) const {
+            if (v < min() || v > max()) return DomainChange::inconsistency;
+            if (value()) return DomainChange::none;
+            ptr[0] = v - offset;
+            ptr[1] = v - offset;
             return DomainChange::changed;
         }
 
         /**
          * @brief Remove all values below a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange removeBelow(int32_t value) const {
-            if (value <= min()) return DomainChange::none;
-            if (value > max()) return DomainChange::inconsistency;
-            ptr[0] = value - offset;
+        DomainChange removeBelow(int32_t v) const {
+            if (v <= min()) return DomainChange::none;
+            if (v > max()) return DomainChange::inconsistency;
+            ptr[0] = v - offset;
             return DomainChange::changed;
         }
 
         /**
          * @brief Remove all values above a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange removeAbove(int32_t value) const {
-            if (value >= max()) return DomainChange::none;
-            if (value < min()) return DomainChange::inconsistency;
-            ptr[1] = value - offset;
+        DomainChange removeAbove(int32_t v) const {
+            if (v >= max()) return DomainChange::none;
+            if (v < min()) return DomainChange::inconsistency;
+            ptr[1] = v - offset;
             return DomainChange::changed;
         }
 
@@ -146,49 +148,51 @@ namespace cp {
         }
 
         /**
-         * @brief Whether the domain contains a single value
+         * @brief Check if the domain contains a single value and, if so, return it
          */
-        bool fixed() const {
-            return min() == max();
+        std::optional<int32_t> value() const {
+            int32_t m = min();
+            if (m == max()) return m;
+            return {};
         }
 
 
         /**
          * @brief Fix the domain to a single value
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange fix(int32_t value) const {
-            value -= offset;
-            int32_t oldMin = atomic(ptr[0]).fetch_max(value);
-            int32_t oldMax = atomic(ptr[1]).fetch_min(value);
-            if (value < oldMin || value > oldMax) return DomainChange::inconsistency;
-            if (value > oldMin || value < oldMax) return DomainChange::changed;
+        DomainChange fix(int32_t v) const {
+            v -= offset;
+            int32_t oldMin = atomic(ptr[0]).fetch_max(v);
+            int32_t oldMax = atomic(ptr[1]).fetch_min(v);
+            if (v < oldMin || v > oldMax) return DomainChange::inconsistency;
+            if (v > oldMin || v < oldMax) return DomainChange::changed;
             return DomainChange::none;
         }
 
         /**
          * @brief Remove all values below a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange removeBelow(int32_t value) const {
-            value -= offset;
-            bool changed = atomic(ptr[0]).fetch_max(value) < value;
+        DomainChange removeBelow(int32_t v) const {
+            v -= offset;
+            bool changed = atomic(ptr[0]).fetch_max(v) < v;
             if (!changed) return DomainChange::none;
-            return value <= atomic(ptr[1]).load() ? DomainChange::changed : DomainChange::inconsistency;    
+            return v <= atomic(ptr[1]).load() ? DomainChange::changed : DomainChange::inconsistency;    
         }
 
         /**
          * @brief Remove all values above a value from the domain
-         * @param value The value
+         * @param v The value
          * @return Whether the domain was modified
          */
-        DomainChange removeAbove(int32_t value) const {
-            value -= offset;
-            bool changed = atomic(ptr[1]).fetch_min(value) > value;
+        DomainChange removeAbove(int32_t v) const {
+            v -= offset;
+            bool changed = atomic(ptr[1]).fetch_min(v) > v;
             if (!changed) return DomainChange::none;
-            return atomic(ptr[0]).load() <= value ? DomainChange::changed : DomainChange::inconsistency;    
+            return atomic(ptr[0]).load() <= v ? DomainChange::changed : DomainChange::inconsistency;    
         }
 
     private:

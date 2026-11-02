@@ -230,6 +230,7 @@ namespace cp {
 
 
         /*void print(Context ctx) const {
+            sycl::group_barrier(ctx.item.get_group());
             if (ctx.item.get_local_id(0) == 0) {
                 printf("--- State ---\n");
                 for (uint32_t i = 0; i < output.size(); i++) {
@@ -237,6 +238,7 @@ namespace cp {
                 }
                 printf("--- End State ---\n");
             }
+            sycl::group_barrier(ctx.item.get_group());
         }*/
 
 
