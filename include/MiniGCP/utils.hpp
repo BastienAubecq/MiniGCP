@@ -41,7 +41,7 @@ namespace cp {
      */
     inline std::optional<int32_t> groupBroadcastAny(Context ctx, std::optional<int32_t> value) {
         int32_t* shared = ctx.getTemporary<int32_t>() - 1;
-        if (value) sycl::atomic_ref<int32_t, sycl::memory_order::relaxed, sycl::memory_scope::work_group>(*shared).store(*value);
+        if (value) *shared = *value;
         if (!sycl::any_of_group(ctx.item.get_group(), value.has_value())) return {};
         int32_t broadcasted = *shared;
         sycl::group_barrier(ctx.item.get_group());

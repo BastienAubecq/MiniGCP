@@ -130,14 +130,14 @@ namespace cp {
          * @brief Get the minimum value in the domain
          */
         int32_t min() const {
-            return atomic(ptr[0]).load() + offset;
+            return ptr[0] + offset;
         }
 
         /**
          * @brief Get the maximum value in the domain
          */
         int32_t max() const {
-            return atomic(ptr[1]).load() + offset;
+            return ptr[1] + offset;
         }
 
         /**

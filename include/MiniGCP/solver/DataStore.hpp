@@ -263,20 +263,9 @@ namespace cp {
             uint32_t* dst32 = reinterpret_cast<uint32_t*>(dst);
             size /= sizeof(uint32_t);
 
-            // Unroll manually because the compiler doesn't know `src` and `dst` can't overlap
-            uint32_t i;
-            uint32_t s = item.get_local_range(0);
-            for (i = item.get_local_id(0); i + 3 * s < size; i += 4 * s) {
-                uint32_t a = src32[i];
-                uint32_t b = src32[i + s];
-                uint32_t c = src32[i + 2 * s];
-                uint32_t d = src32[i + 3 * s];
-                dst32[i] = a;
-                dst32[i + s] = b;
-                dst32[i + 2 * s] = c;
-                dst32[i + 3 * s] = d;
+            for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0)) {
+                dst32[i] = src32[i];
             }
-            for (; i < size; i += s) dst32[i] = src32[i];
 
             sycl::group_barrier(item.get_group());
         }

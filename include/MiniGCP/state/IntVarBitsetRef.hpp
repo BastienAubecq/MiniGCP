@@ -237,21 +237,21 @@ namespace cp {
          * @brief Get the minimum value in the domain
          */
         int32_t min() const {
-            return atomic(ptr[0]).load() + offset;
+            return ptr[0] + offset;
         }
 
         /**
          * @brief Get the maximum value in the domain
          */
         int32_t max() const {
-            return atomic(ptr[1]).load() + offset;
+            return ptr[1] + offset;
         }
 
         /**
          * @brief Get the number of values in the domain
          */
         int32_t size() const {
-            return atomic(ptr[2]).load();
+            return ptr[2];
         }
         
         /**
@@ -270,7 +270,7 @@ namespace cp {
         bool contains(int32_t v) const {
             if (v < min() || v > max()) return false;
             v -= offset;
-            return atomic(ptr[3 + v / 32]).load() & ((int32_t)1 << v % 32);
+            return ptr[3 + v / 32] & ((int32_t)1 << v % 32);
         }
 
         
@@ -301,8 +301,8 @@ namespace cp {
          */
         DomainChange fix(int32_t v) const {
             v -= offset;
-            int32_t min = atomic(ptr[0]).load();
-            int32_t max = atomic(ptr[1]).load();
+            int32_t min = ptr[0];
+            int32_t max = ptr[1];
             if (v == min && v == max) return DomainChange::none;
             if (v < min || v > max) return DomainChange::inconsistency;
             atomic(ptr[0]).fetch_max(v); // Update min
@@ -329,9 +329,9 @@ namespace cp {
          */
         DomainChange removeBelow(int32_t v) const {
             v -= offset;
-            int32_t min = atomic(ptr[0]).load();
+            int32_t min = ptr[0];
             if (v <= min) return DomainChange::none;
-            if (v > atomic(ptr[1]).load()) return DomainChange::inconsistency;
+            if (v > ptr[1]) return DomainChange::inconsistency;
             atomic(ptr[0]).fetch_max(v); // Update min
 
             // Clear and count bits
@@ -354,9 +354,9 @@ namespace cp {
          */
         DomainChange removeAbove(int32_t v) const {
             v -= offset;
-            int32_t max = atomic(ptr[1]).load();
+            int32_t max = ptr[1];
             if (v >= max) return DomainChange::none;
-            if (v < atomic(ptr[0]).load()) return DomainChange::inconsistency;
+            if (v < ptr[0]) return DomainChange::inconsistency;
             atomic(ptr[1]).fetch_min(v); // Update max
 
             // Clear and count bits
@@ -393,7 +393,7 @@ namespace cp {
          * @brief Recompute min after removing some values
          */
         void updateMin() const {
-            for (int32_t i = 3 + atomic(ptr[0]).load() / 32; i <= 3 + atomic(ptr[1]).load() / 32; i++) {
+            for (int32_t i = 3 + ptr[0] / 32; i <= 3 + ptr[1] / 32; i++) {
                 int32_t word = atomic(ptr[i]).load();
                 if (word != 0) {
                     atomic(ptr[0]).fetch_max((i - 3) * 32 + sycl::ctz(word));
@@ -406,7 +406,7 @@ namespace cp {
          * @brief Recompute max after removing some values
          */
         void updateMax() const {
-            for (int32_t i = 3 + atomic(ptr[1]).load() / 32; i >= 3 + atomic(ptr[0]).load() / 32; i--) {
+            for (int32_t i = 3 + ptr[1] / 32; i >= 3 + ptr[0] / 32; i--) {
                 int32_t word = atomic(ptr[i]).load();
                 if (word != 0) {
                     atomic(ptr[1]).fetch_min((i - 3) * 32 + 31 - sycl::clz(word));
