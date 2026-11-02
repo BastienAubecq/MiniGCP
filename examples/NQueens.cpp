@@ -13,7 +13,7 @@ using namespace cp;
  * @param params Device parameters
  * @return The solver
  */
-static auto getNQueensSolver(uint32_t n, DeviceParams params) {
+static auto getNQueensSolver(uint32_t n, IsDeviceParams auto params) {
     Model<AllDifferentFWC> model(ProblemType::satisfaction);
     vector<IntVarBitsetIdx> variables;
     vector<IntVarBitsetIdx> diag1;
@@ -41,7 +41,7 @@ static auto getNQueensSolver(uint32_t n, DeviceParams params) {
  * @param params Device parameters
  * @return The solver
  */
-static auto getNQueensBinarySolver(uint32_t n, DeviceParams params) {
+static auto getNQueensBinarySolver(uint32_t n, IsDeviceParams auto params) {
     Model<NotEqual> model(ProblemType::satisfaction);
     vector<IntVarBitsetIdx> variables;
     for (uint32_t i = 0; i < n; i++) {
@@ -70,9 +70,9 @@ int main(int argc, char const* const* argv) {
 
     uint32_t n = std::stoi(argv[1]);
     uint32_t limit = argc == 3 ? std::stoi(argv[2]) : UINT32_MAX;
-    DeviceParams params(sycl::gpu_selector_v, 32, 1);
+    DeviceParams<1> params(sycl::cpu_selector_v, 1);
     auto solver = getNQueensSolver(n, params);
-    solver.solve([=](SearchStatistics stats) { return stats.nNodes >= limit; });
+    solver.solve([=](SearchStatistics stats) { return stats.nSolutions >= limit; });
 
     cout << solver.getStatistics() << endl;
     for (int32_t s : solver.getSolution()) {

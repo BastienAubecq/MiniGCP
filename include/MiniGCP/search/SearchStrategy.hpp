@@ -12,15 +12,13 @@
 namespace cp {
 
     template<typename T>
-    struct IsOptionalDecision : std::false_type {};
+    inline constexpr bool is_optional_decision_v = false;
+
+    template<Decision T>
+    inline constexpr bool is_optional_decision_v<std::optional<T>> = true;
 
     template<typename T>
-    struct IsOptionalDecision<std::optional<T>> : std::true_type {
-        using Decision = T;
-    };
-
-    template<typename T>
-    concept OptionalDecision = IsOptionalDecision<T>::value;
+    concept IsOptionalDecision = is_optional_decision_v<T>;
 
 
     template<typename T>
@@ -32,7 +30,7 @@ namespace cp {
          * @param ctx Current context
          * @return The decision
          */
-        { search.split(ctx) } -> OptionalDecision;
+        { search.split(ctx) } -> IsOptionalDecision;
 
         /**
          * @brief Get the maximum number of left branches on any path from the root
@@ -44,7 +42,7 @@ namespace cp {
 
 
     template<SearchStrategy Strategy>
-    using DecisionOf = typename IsOptionalDecision<decltype(std::declval<Strategy>().split(std::declval<Context>()))>::Decision;
+    using DecisionOf = std::remove_reference_t<decltype(*std::declval<Strategy>().split(std::declval<Context>()))>;
 
 }
 

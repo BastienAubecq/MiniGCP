@@ -61,7 +61,7 @@ public:
  * @param params Device parameters
  * @return The solver
  */
-static auto getTSPSolver(TSPInstance const& instance, DeviceParams params) {
+static auto getTSPSolver(TSPInstance const& instance, IsDeviceParams auto params) {
     Model<AllDifferentFWC, Circuit, Element1D, Sum> model(ProblemType::minimization);
     uint32_t n = instance.n;
 
@@ -93,7 +93,7 @@ int main(int argc, char const* const* argv) {
     }
 
     TSPInstance instance(argv[1]);
-    DeviceParams params(sycl::gpu_selector_v, 64, 1);
+    DeviceParams<1> params(sycl::cpu_selector_v, 1);
     auto solver = getTSPSolver(instance, params);
     solver.solve(noLimit);
 

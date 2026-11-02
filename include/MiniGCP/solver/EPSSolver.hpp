@@ -8,16 +8,16 @@ namespace cp {
     /**
      * @brief Embarrassingly parallel search solver
      */
-    template<SearchStrategy Strategy, Constraint... Constraints>
-    class EPSSolver : public Solver<Strategy, Constraints...> {
+    template<SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    class EPSSolver : public Solver<Strategy, DeviceParams, Constraints...> {
     public:
         EPSSolver(Model<Constraints...> model, Strategy strategy, DeviceParams params, uint32_t epsDepth) :
-            Solver<Strategy, Constraints...>(model, strategy, params), epsDepth(epsDepth) {}
+            Solver<Strategy, DeviceParams, Constraints...>(model, strategy, params), epsDepth(epsDepth) {}
 
         void solve(SearchLimit auto limit) {
             uint32_t epsDepth = this->epsDepth;
 
-            this->parallelFor(this->solver, this->params.nGroups, this->params.groupSize, [=](Context ctx, DeviceSolver<Strategy, Constraints...> solver) {
+            this->parallelFor(this->solver, this->params.nGroups, this->params.groupSize, [=](Context ctx, auto solver) {
                 bool hasSubproblem = !solver.firstSearch;
                 solver.firstSearch = false;
 

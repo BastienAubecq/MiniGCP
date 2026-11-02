@@ -23,13 +23,13 @@ namespace cp {
     /**
      * @brief Device-side solver
      */
-    template<SearchStrategy Strategy, Constraint... Constraints>
+    template<SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class DeviceSolver {
     public:
         ProblemType type;
         IntVarIntervalIdx objective;
         Strategy strategy;
-        DataStore<DecisionOf<Strategy>> data;
+        DataStore<DecisionOf<Strategy>, DeviceParams::localLocal, DeviceParams::localState> data;
         ConstraintStore<Constraints...> constraints;
         SearchStatistics* statistics;
         bool firstSearch = true;
@@ -140,7 +140,7 @@ namespace cp {
     /**
      * @brief CP solver base class
      */
-    template<SearchStrategy Strategy, Constraint... Constraints>
+    template<SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class Solver {
     public:
         Solver(Model<Constraints...> model, Strategy strategy, DeviceParams params) :
@@ -193,7 +193,7 @@ namespace cp {
     protected:
         sycl::queue queue;
         DeviceParams params;
-        DeviceSolver<Strategy, Constraints...> solver;
+        DeviceSolver<Strategy, DeviceParams, Constraints...> solver;
         SearchStatistics statistics;
         std::vector<int32_t> solution;
 
@@ -201,16 +201,15 @@ namespace cp {
          * @brief Execute a kernel on the device
          * @param solver Device solver
          * @param nGroups Number of work groups
-         * @param groupSize Size of the work groups
          * @param kernel The kernel
          */
         template<typename Kernel>
-        void parallelFor(DeviceSolver<Strategy, Constraints...>& solver, uint32_t nGroups, uint32_t groupSize, Kernel kernel) {
+        void parallelFor(DeviceSolver<Strategy, DeviceParams, Constraints...>& solver, uint32_t nGroups, Kernel kernel) {
             queue.submit([=](sycl::handler& handler) {
                 auto local = solver.data.getLocalMemory(handler);
                 sycl::stream error(8192, 1024, handler);
 
-                handler.parallel_for(sycl::nd_range<1>(nGroups * groupSize, groupSize), [=](sycl::nd_item<1> item) {
+                handler.parallel_for(sycl::nd_range<1>(nGroups * DeviceParams::groupSize, DeviceParams::groupSize), [=](sycl::nd_item<1> item) {
                     if (solver.statistics->completed) return;
 
                     Context ctx = solver.data.getContext(item, error, local);

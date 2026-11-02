@@ -21,9 +21,10 @@ namespace cp {
     /**
      * @brief Device-side data
      * @tparam Decision Decision type
-     * @tparam Limit Search limit type
+     * @tparam localLocal Whether to store local data in local memory
+     * @tparam localState Whether to store state data in local memory
      */
-    template<Decision Decision>
+    template<Decision Decision, bool localLocal, bool localState>
     class DataStore {
     public:
         DataStore(
@@ -38,15 +39,6 @@ namespace cp {
             stackSize = maxDepth;
             size_t allocLocalSize = localSize * (1 + nGroups);
             size_t allocStateSize = stateSize * (1 + (stackSize + 1) * nGroups);
-
-            if (queue.get_device().get_info<sycl::info::device::local_mem_type>() == sycl::info::local_mem_type::local) {
-                size_t localMemorySize = queue.get_device().get_info<sycl::info::device::local_mem_size>() - temporarySize;
-                if (localMemorySize > localSize) {
-                    localLocal = true;
-                    localMemorySize -= localSize;
-                }
-                if (localMemorySize > stateSize) localState = true;
-            }
 
             int32_t* outputInit = new int32_t[(output.size() + 1) * nGroups];
             for (size_t i = 0; i < nGroups; i++) {
@@ -248,8 +240,6 @@ namespace cp {
         uint32_t stateSize;
         uint32_t stackSize;
         uint32_t temporarySize;
-        bool localLocal = false; // Whether local data is stored in shared memory
-        bool localState = false; // Whether the current state is stored in local memory
         std::byte* globalData;
         std::byte* localData;
         std::byte* stateData; // Stacks of states
