@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/IntVarBitsetIdx.hpp"
+#include "MiniGCP/state/IntVar.hpp"
 
 namespace cp {
 
@@ -12,27 +12,29 @@ namespace cp {
      * Fix the domain of a variable to a value in the left branch.
      * Remove that value in the right branch.
      * Leaf node if the variable is already fixed.
+     * @tparam T Type of the variable
      */
+    template<IntVar T>
     class FixRemove {
     public:
-        FixRemove(IntVarBitsetIdx x, int32_t v) : x(x), v(v) {}
+        FixRemove(T x, int32_t v) : x(x), v(v) {}
 
         void applyLeft(Context ctx) const {
             //printf("Fix %d to %d\n", x.index, v);
             //ctx[x].print();
-            ctx[x].fix(v);
+            x[ctx].fix(v);
             //ctx[x].print();
         }
 
         void applyRight(Context ctx) const {
             //printf("Remove %d from %d\n", v, x.index);
             //ctx[x].print();
-            ctx[x].remove(v);
+            x[ctx].remove(v);
             //ctx[x].print();
         }
     
     private:
-        IntVarBitsetIdx x;
+        T x;
         int32_t v;
     };
 

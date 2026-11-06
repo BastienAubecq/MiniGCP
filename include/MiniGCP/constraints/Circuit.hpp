@@ -2,47 +2,48 @@
 #define MINIGCP_CIRCUIT
 
 #include <utility>
-#include "MiniGCP/Model.hpp"
+#include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/utils.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/ArrayIdx.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarBitsetIdx.hpp"
-#include "MiniGCP/state/ValueIdx.hpp"
+#include "MiniGCP/state/Array.hpp"
+#include "MiniGCP/state/IntVar.hpp"
+#include "MiniGCP/state/Value.hpp"
 
 namespace cp {
 
     /**
-     * @brief Constraint : the graph represented by the successors doesn't contain any cycles that don't involve all nodes.
+     * @brief Constraint : the graph represented by the successor of each node doesn't contain any cycles that don't involve all nodes.
      * Sequential implementation.
+     * @tparam Succ Type of the successors
      */
+    template<IntVarArray Succ>
     class CircuitSeq {
     public:
         constexpr static bool parallel = false;
 
-        CircuitSeq(Allocator& allocator, ArrayIdx<Scope::global, IntVarBitsetIdx> succ) :
+        CircuitSeq(Allocator& allocator, Succ succ) :
             succ(succ),
-            notFixed(allocator.array<Scope::local, uint32_t>(succ.size())),
-            pathEnd(allocator.array<Scope::state, uint32_t>(succ.size())),
-            nFixed(allocator.value<Scope::state, uint32_t>(0)) {
+            notFixed(allocator, succ.size()),
+            pathEnd(allocator, succ.size()),
+            nFixed(allocator, 0) {
             for (uint32_t i = 0; i < succ.size(); i++) {
-                allocator[notFixed][i] = i;
-                allocator[pathEnd][i] = i;
-                allocator[allocator[succ][i]].removeBelow(0);
-                allocator[allocator[succ][i]].removeAbove(succ.size() - 1);
-                allocator[allocator[succ][i]].remove(i);
+                notFixed[allocator, i] = i;
+                pathEnd[allocator, i] = i;
+                succ[allocator, i][allocator].removeBelow(0);
+                succ[allocator, i][allocator].removeAbove(succ.size() - 1);
+                succ[allocator, i][allocator].remove(i);
             }
         }
 
         DomainChange propagate(Context ctx) const {
-            uint32_t nFixed = ctx[this->nFixed];
-            uint32_t* notFixed = ctx[this->notFixed];
-            uint32_t* pathEnd = ctx[this->pathEnd];
+            uint32_t nFixed = this->nFixed[ctx];
+            uint32_t* notFixed = this->notFixed[ctx];
+            uint32_t* pathEnd = this->pathEnd[ctx];
             DomainChange change = DomainChange::none;
 
             for (uint32_t i = nFixed; i < succ.size(); i++) {
                 uint32_t u = notFixed[i];
-                std::optional<int32_t> v = ctx[ctx[succ][u]].value();
+                std::optional<int32_t> v = succ[ctx, u][ctx].value();
                 if (v) {
                     std::swap(notFixed[nFixed++], notFixed[i]);
                     if (nFixed < succ.size() - 1) { // Prevent cycle
@@ -50,50 +51,52 @@ namespace cp {
                         uint32_t dst = pathEnd[*v];
                         pathEnd[src] = dst;
                         pathEnd[dst] = src;
-                        change |= ctx[ctx[succ][dst]].remove(src);
+                        change |= succ[ctx, dst][ctx].remove(src);
                     }
                 }
             }
 
-            ctx[this->nFixed] = nFixed;
+            this->nFixed[ctx] = nFixed;
             return change;
         }
 
     private:
-        ArrayIdx<Scope::global, IntVarBitsetIdx> succ;
-        ArrayIdx<Scope::local, uint32_t> notFixed; // Indices of the unfixed variables
-        ArrayIdx<Scope::state, uint32_t> pathEnd; // Other end of the path that starts at each node
-        ValueIdx<Scope::state, uint32_t> nFixed;
+        Succ succ;
+        Array<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
+        Array<uint32_t, Scope::state> pathEnd; // Other end of the path that starts at each node
+        Value<uint32_t, Scope::state> nFixed; // Number of unfixed variables
     };
 
 
 
     /**
-     * @brief Constraint : the graph represented by the successors doesn't contain any cycles that don't involve all nodes.
+     * @brief Constraint : the graph represented by the successor of each node doesn't contain any cycles that don't involve all nodes.
      * Parallel implementation.
+     * @tparam Succ Type of the successors
      */
+    template<IntVarArray Succ>
     class Circuit {
     public:
         constexpr static bool parallel = true;
 
-        Circuit(Allocator& allocator, ArrayIdx<Scope::global, IntVarBitsetIdx> succ) :
+        Circuit(Allocator& allocator, Succ succ) :
             succ(succ),
-            notFixed(allocator.array<Scope::local, uint32_t>(succ.size())),
-            pathEnd(allocator.array<Scope::state, uint32_t>(succ.size())),
-            nFixed(allocator.value<Scope::state, uint32_t>(0)) {
+            notFixed(allocator, succ.size()),
+            pathEnd(allocator, succ.size()),
+            nFixed(allocator, 0) {
             for (uint32_t i = 0; i < succ.size(); i++) {
-                allocator[notFixed][i] = i;
-                allocator[pathEnd][i] = i;
-                allocator[allocator[succ][i]].removeBelow(0);
-                allocator[allocator[succ][i]].removeAbove(succ.size() - 1);
-                allocator[allocator[succ][i]].remove(i);
+                notFixed[allocator, i] = i;
+                pathEnd[allocator, i] = i;
+                succ[allocator, i][allocator].removeBelow(0);
+                succ[allocator, i][allocator].removeAbove(succ.size() - 1);
+                succ[allocator, i][allocator].remove(i);
             }
         }
 
         DomainChange propagate(Context ctx) const {
-            uint32_t nFixed = ctx[this->nFixed];
-            uint32_t* notFixed = ctx[this->notFixed];
-            uint32_t* pathEnd = ctx[this->pathEnd];
+            uint32_t nFixed = this->nFixed[ctx];
+            uint32_t* notFixed = this->notFixed[ctx];
+            uint32_t* pathEnd = this->pathEnd[ctx];
             DomainChange change = DomainChange::none;
 
             for (uint32_t b = nFixed; b < succ.size(); b += ctx.item.get_local_range(0)) {
@@ -106,7 +109,7 @@ namespace cp {
                     std::optional<uint32_t> broadcast;
                     if (i >= nFixed && i < succ.size()) {
                         u = notFixed[i];
-                        v = ctx[ctx[succ][u]].value();
+                        v = succ[ctx, u][ctx].value();
                         if (v) broadcast = i;
                     }
                     fixed = groupBroadcastAny(ctx, broadcast);
@@ -120,7 +123,7 @@ namespace cp {
                                 uint32_t dst = pathEnd[*v];
                                 pathEnd[src] = dst;
                                 pathEnd[dst] = src;
-                                change |= ctx[ctx[succ][dst]].remove(src);
+                                change |= succ[ctx, dst][ctx].remove(src);
                             }
                         }
                         nFixed++;
@@ -129,15 +132,15 @@ namespace cp {
                 } while (fixed);
             }
             
-            if (ctx.item.get_local_id(0) == 0) ctx[this->nFixed] = nFixed;
+            if (ctx.item.get_local_id(0) == 0) this->nFixed[ctx] = nFixed;
             return groupChange(ctx.item.get_group(), change);
         }
 
     private:
-        ArrayIdx<Scope::global, IntVarBitsetIdx> succ;
-        ArrayIdx<Scope::local, uint32_t> notFixed; // Indices of the unfixed variables
-        ArrayIdx<Scope::state, uint32_t> pathEnd; // Other end of the path that starts at each node
-        ValueIdx<Scope::state, uint32_t> nFixed;
+        Succ succ;
+        Array<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
+        Array<uint32_t, Scope::state> pathEnd; // Other end of the path that starts at each node
+        Value<uint32_t, Scope::state> nFixed; // Number of unfixed variables
     };
 
 }

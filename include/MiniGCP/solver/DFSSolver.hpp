@@ -9,11 +9,11 @@ namespace cp {
     /**
      * @brief Depth-first search solver
      */
-    template<SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
-    class DFSSolver : public Solver<Strategy, DeviceParams, Constraints...> {
+    template<Objective Objective, IntVarIntervalArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    class DFSSolver : public Solver<Objective, Output, Strategy, DeviceParams, Constraints...> {
     public:
-        DFSSolver(Model<Constraints...> model, Strategy strategy, DeviceParams params) :
-            Solver<Strategy, DeviceParams, Constraints...>(model, strategy, params) {
+        DFSSolver(Model<Constraints...> model, Objective objective, Output output, Strategy strategy, DeviceParams params) :
+            Solver<Objective, Output, Strategy, DeviceParams, Constraints...>(model, objective, output, strategy, params) {
             if (params.nGroups != 1) throw std::invalid_argument("DFSSolver uses a single group of threads");
         }
 

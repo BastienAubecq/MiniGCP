@@ -1,70 +1,73 @@
 #ifndef MINIGCP_ELEMENT_1D
 #define MINIGCP_ELEMENT_1D
 
-#include <algorithm>
 #include "MiniGCP/Model.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/ArrayIdx.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarBitsetIdx.hpp"
-#include "MiniGCP/state/IntVarIntervalIdx.hpp"
-#include "MiniGCP/state/ValueIdx.hpp"
+#include "MiniGCP/state/Array.hpp"
+#include "MiniGCP/state/IntInterval.hpp"
+#include "MiniGCP/state/IntVar.hpp"
+#include "MiniGCP/state/Value.hpp"
 
 namespace cp {
 
     /**
      * @brief Constraint : t[y] = z.
      * Bound consistency on z, domain consistency on y.
+     * @tparam Y Type of y
+     * @tparam Z Type of z
      */
+    template<IntVar Y, IntVarInterval Z>
     class Element1D {
     public:
         constexpr static bool parallel = false;
 
-        Element1D(Allocator& allocator, ArrayIdx<Scope::global, int32_t> t, IntVarBitsetIdx y, IntVarIntervalIdx z) :
+        Element1D(Allocator& allocator, Array<int32_t, Scope::global> t, Y y, Z z) :
             t(t), y(y), z(z),
-            sorted(allocator.array<Scope::global, uint32_t>(t.size())),
-            min(allocator.value<Scope::state, uint32_t>(0)),
-            max(allocator.value<Scope::state, uint32_t>(t.size() - 1)) {
+            sorted(allocator, t.size()),
+            min(allocator, 0),
+            max(allocator, t.size() - 1) {
             for (uint32_t i = 0; i < t.size(); i++) {
-                allocator[sorted][i] = i;
+                sorted[allocator, i] = i;
             }
-            std::sort(allocator[sorted], allocator[sorted] + t.size(), [&](uint32_t i, uint32_t j) {
-                return allocator[t][i] < allocator[t][j];
+            std::sort(sorted[allocator], sorted[allocator] + t.size(), [&](uint32_t i, uint32_t j) {
+                return t[allocator, i] < t[allocator, j];
             });
-            allocator[y].removeBelow(0);
-            allocator[y].removeAbove(t.size() - 1);
+            y[allocator].removeBelow(0);
+            y[allocator].removeAbove(t.size() - 1);
+            z[allocator].removeBelow(t[allocator, sorted[allocator, 0]]);
+            z[allocator].removeAbove(t[allocator, sorted[allocator, t.size() - 1]]);
         }
 
         DomainChange propagate(Context ctx) const {
-            int32_t* t = ctx[this->t];
+            int32_t* t = this->t[ctx];
             uint32_t n = this->t.size();
-            uint32_t* sorted = ctx[this->sorted];
+            uint32_t* sorted = this->sorted[ctx];
             DomainChange change = DomainChange::none;
-            int32_t i = ctx[min];
-            int32_t j = ctx[max];
+            int32_t i = min[ctx];
+            int32_t j = max[ctx];
 
-            int32_t zMin = ctx[z].min();
-            while (i <= j && t[sorted[i]] < zMin) change |= ctx[y].remove(sorted[i++]);
-            while (i <= j && !ctx[y].contains(sorted[i])) i++;
-            if (i < n) change |= ctx[z].removeBelow(t[sorted[i]]);
-            ctx[min] = i;
+            int32_t zMin = z[ctx].min();
+            while (i <= j && t[sorted[i]] < zMin) change |= y[ctx].remove(sorted[i++]);
+            while (i <= j && !y[ctx].contains(sorted[i])) i++;
+            if (i < n) change |= z[ctx].removeBelow(t[sorted[i]]);
+            min[ctx] = i;
 
-            int32_t zMax = ctx[z].max();
-            while (j >= i && t[sorted[j]] > zMax) change |= ctx[y].remove(sorted[j--]);
-            while (j >= i && !ctx[y].contains(sorted[j])) j--;
-            if (j >= 0) change |= ctx[z].removeAbove(t[sorted[j]]);
-            ctx[max] = j;
+            int32_t zMax = z[ctx].max();
+            while (j >= i && t[sorted[j]] > zMax) change |= y[ctx].remove(sorted[j--]);
+            while (j >= i && !y[ctx].contains(sorted[j])) j--;
+            if (j >= 0) change |= z[ctx].removeAbove(t[sorted[j]]);
+            max[ctx] = j;
 
             return change;
         }
 
     private:
-        ArrayIdx<Scope::global, int32_t> t;
-        IntVarBitsetIdx y;
-        IntVarIntervalIdx z;
-        ArrayIdx<Scope::global, uint32_t> sorted; // Indices of the values in t in sorted order
-        ValueIdx<Scope::state, uint32_t> min; // Index of the index of the minimum feasible value in t
-        ValueIdx<Scope::state, uint32_t> max; // Index of the index of the maximum feasible value in t
+        Array<int32_t, Scope::global> t;
+        Y y;
+        Z z;
+        Array<uint32_t, Scope::global> sorted; // Indices of the values in t in sorted order
+        Value<uint32_t, Scope::state> min; // Index of the index of the minimum feasible value in t
+        Value<uint32_t, Scope::state> max; // Index of the index of the maximum feasible value in t
     };
 
 
@@ -75,16 +78,9 @@ namespace cp {
      * @param y Index variable
      * @return The result
      */
-    template<Constraint... Constraints>
-    inline IntVarIntervalIdx element1D(Model<Constraints...>& model, ArrayIdx<Scope::global, int32_t> t, IntVarBitsetIdx y) {
-        int32_t min = INT32_MAX;
-        int32_t max = INT32_MIN;
-        for (uint32_t i = 0; i < t.size(); i++) {
-            int32_t v = model[t][i];
-            if (v < min) min = v;
-            if (v > max) max = v;
-        }
-        IntVarIntervalIdx z = model.intVarInterval(min, max);
+    template<IntVar Y, Constraint... Constraints>
+    inline IntInterval element1D(Model<Constraints...>& model, Array<int32_t, Scope::global> t, Y y) {
+        IntInterval z(model);
         model.constraint(Element1D(model, t, y, z));
         return z;
     }

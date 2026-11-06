@@ -1,7 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <vector>
-#include "MiniGCP/Model.hpp"
 #include "MiniGCP/search/FirstFail.hpp"
+#include "MiniGCP/state/Array.hpp"
+#include "MiniGCP/state/IntBitset.hpp"
 #include "utils.hpp"
 
 using namespace cp;
@@ -9,46 +10,46 @@ using namespace std;
 
 TEST_CASE("FirstFail unfixed variable", "[FirstFail]") {
     Allocator allocator;
-    IntVarBitsetIdx fixed = allocator.intVarBitset(1);
-    IntVarBitsetIdx selected = allocator.intVarBitset(2);
-    vector<IntVarBitsetIdx> variables{fixed, selected};
-    FirstFail strategy(allocator.array<Scope::global, IntVarBitsetIdx>(variables));
+    IntBitset fixed(allocator, 1);
+    IntBitset selected(allocator, 2);
+    vector<IntBitset> variables{fixed, selected};
+    FirstFail<Array<IntBitset>> strategy(Array<IntBitset>(allocator, variables));
 
     bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
-        optional<FixRemove> decision = strategy.split(ctx);
+        auto decision = strategy.split(ctx);
         if (!decision) return false;
         decision->applyLeft(ctx);
         return true;
     })[0];
 
     REQUIRE(d);
-    REQUIRE(allocator[selected].value() == 0);
+    REQUIRE(selected[allocator].value() == 0);
 }
 
 TEST_CASE("FirstFail smallest domain", "[FirstFail]") {
     Allocator allocator;
-    IntVarBitsetIdx large = allocator.intVarBitset(10);
-    IntVarBitsetIdx small = allocator.intVarBitset(3);
-    vector<IntVarBitsetIdx> variables{large, small};
-    FirstFail strategy(allocator.array<Scope::global, IntVarBitsetIdx>(variables));
+    IntBitset large(allocator, 10);
+    IntBitset small(allocator, 3);
+    vector<IntBitset> variables{large, small};
+    FirstFail strategy(Array<IntBitset>(allocator, variables));
 
     bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
-        optional<FixRemove> decision = strategy.split(ctx);
+        auto decision = strategy.split(ctx);
         if (!decision) return false;
         decision->applyLeft(ctx);
         return true;
     })[0];
 
     REQUIRE(d);
-    REQUIRE(allocator[small].value() == 0);
+    REQUIRE(small[allocator].value() == 0);
 }
 
 TEST_CASE("FirstFail all fixed", "[FirstFail]") {
     Allocator allocator;
-    IntVarBitsetIdx first = allocator.intVarBitset(1);
-    IntVarBitsetIdx second = allocator.intVarBitset(1);
-    vector<IntVarBitsetIdx> variables{first, second};
-    FirstFail strategy(allocator.array<Scope::global, IntVarBitsetIdx>(variables));
+    IntBitset first(allocator, 1);
+    IntBitset second(allocator, 1);
+    vector<IntBitset> variables{first, second};
+    FirstFail strategy(Array<IntBitset>(allocator, variables));
 
     bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
         return strategy.split(ctx).has_value();
@@ -59,40 +60,34 @@ TEST_CASE("FirstFail all fixed", "[FirstFail]") {
 
 TEST_CASE("FirstFail concurrent few variables", "[FirstFail][concurrent]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> variables;
-    for (int i = 0; i < 10; i++) {
-        variables.push_back(allocator.intVarBitset(10));
-    }
-    allocator[variables[5]].removeAbove(5);
-    FirstFail strategy(allocator.array<Scope::global, IntVarBitsetIdx>(variables));
+    IntBitsetArray variables(allocator, 10, 10);
+    variables[5][allocator].removeAbove(5);
+    FirstFail strategy(variables);
 
     bool d = runOnDevice<char>(allocator, 16, [=](Context ctx) {
-        optional<FixRemove> decision = strategy.split(ctx);
+        auto decision = strategy.split(ctx);
         if (!decision) return false;
         if (ctx.item.get_local_id(0) == 0) decision->applyLeft(ctx);
         return true;
     })[0];
 
     REQUIRE(d);
-    REQUIRE(allocator[variables[5]].value() == 0);
+    REQUIRE(variables[5][allocator].value() == 0);
 }
 
 TEST_CASE("FirstFail concurrent many variables", "[FirstFail][concurrent]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> variables;
-    for (int i = 0; i < 100; i++) {
-        variables.push_back(allocator.intVarBitset(10));
-    }
-    allocator[variables[5]].removeAbove(5);
-    FirstFail strategy(allocator.array<Scope::global, IntVarBitsetIdx>(variables));
+    IntBitsetArray variables(allocator, 10, 100);
+    variables[5][allocator].removeAbove(5);
+    FirstFail strategy(variables);
 
     bool d = runOnDevice<char>(allocator, 16, [=](Context ctx) {
-        optional<FixRemove> decision = strategy.split(ctx);
+        auto decision = strategy.split(ctx);
         if (!decision) return false;
         decision->applyLeft(ctx);
         return true;
     })[0];
 
     REQUIRE(d);
-    REQUIRE(allocator[variables[5]].value() == 0);
+    REQUIRE(variables[5][allocator].value() == 0);
 }

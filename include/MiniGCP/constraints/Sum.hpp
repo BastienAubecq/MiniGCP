@@ -6,70 +6,84 @@
 #include "MiniGCP/Model.hpp"
 #include "MiniGCP/utils.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/ArrayIdx.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarIntervalIdx.hpp"
-#include "MiniGCP/state/ValueIdx.hpp"
+#include "MiniGCP/state/Array.hpp"
+#include "MiniGCP/state/IntInterval.hpp"
+#include "MiniGCP/state/IntVar.hpp"
+#include "MiniGCP/state/Value.hpp"
 
 namespace cp {
 
     /**
      * @brief Constraint : sum_i x_i = y.
      * Bound consistency, sequential implementation.
+     * @tparam X Type of x
+     * @tparam Y Type of y
      */
+    template<IntVarIntervalArray X, IntVarInterval Y>
     class SumSeq {
     public:
         constexpr static bool parallel = false;
 
-        SumSeq(Allocator& allocator, std::span<IntVarIntervalIdx const> x, IntVarIntervalIdx y) :
-            x(allocator.array<Scope::local, IntVarIntervalIdx>(x)),
+        SumSeq(Allocator& allocator, X x, Y y) :
+            x(x),
             y(y),
-            nFixed(allocator.value<Scope::state, uint32_t>(0)),
-            sumFixed(allocator.value<Scope::state, int32_t>(0)) {}
+            notFixed(allocator, x.size()),
+            nFixed(allocator, 0),
+            sumFixed(allocator, 0) {
+            int32_t sumMin = 0;
+            int32_t sumMax = 0;
+            for (uint32_t i = 0; i < x.size(); i++) {
+                notFixed[allocator, i] = i;
+                sumMin += x[allocator, i][allocator].min();
+                sumMax += x[allocator, i][allocator].max();
+            }
+            y[allocator].removeBelow(sumMin);
+            y[allocator].removeAbove(sumMax);
+        }
 
         DomainChange propagate(Context ctx) const {
-            uint32_t nFixed = ctx[this->nFixed];
-            uint32_t n = this->x.size();
-            int32_t sumFixed = ctx[this->sumFixed];
-            IntVarIntervalIdx* x = ctx[this->x];
+            uint32_t nFixed = this->nFixed[ctx];
+            int32_t sumFixed = this->sumFixed[ctx];
+            uint32_t* notFixed = this->notFixed[ctx];
             
             // Get sum of min and max values of x
             int32_t sumMin = sumFixed;
             int32_t sumMax = sumFixed;
-            for (uint32_t i = nFixed; i < n; i++) {
-                int32_t min = ctx[x[i]].min();
-                int32_t max = ctx[x[i]].max();
+            for (uint32_t i = nFixed; i < x.size(); i++) {
+                int32_t min = x[ctx, notFixed[i]][ctx].min();
+                int32_t max = x[ctx, notFixed[i]][ctx].max();
                 sumMin += min;
                 sumMax += max;
                 if (min == max) {
-                    std::swap(x[nFixed++], x[i]);
+                    std::swap(notFixed[nFixed++], notFixed[i]);
                     sumFixed += min;
                 }
             }
 
             // Update min and max values
             DomainChange change = DomainChange::none;
-            change |= ctx[y].removeBelow(sumMin);
-            change |= ctx[y].removeAbove(sumMax);
-            sumMin -= ctx[y].max();
-            sumMax -= ctx[y].min();
-            for (uint32_t i = nFixed; i < n; i++) {
-                int32_t min = ctx[x[i]].min();
-                int32_t max = ctx[x[i]].max();
-                change |= ctx[x[i]].removeBelow(-(sumMax - max));
-                change |= ctx[x[i]].removeAbove(-(sumMin - min));
+            change |= y[ctx].removeBelow(sumMin);
+            change |= y[ctx].removeAbove(sumMax);
+            sumMin -= y[ctx].max();
+            sumMax -= y[ctx].min();
+            for (uint32_t i = nFixed; i < x.size(); i++) {
+                int32_t min = x[ctx, notFixed[i]][ctx].min();
+                int32_t max = x[ctx, notFixed[i]][ctx].max();
+                change |= x[ctx, notFixed[i]][ctx].removeBelow(-(sumMax - max));
+                change |= x[ctx, notFixed[i]][ctx].removeAbove(-(sumMin - min));
             }
 
-            ctx[this->nFixed] = nFixed;
-            ctx[this->sumFixed] = sumFixed;
+            this->nFixed[ctx] = nFixed;
+            this->sumFixed[ctx] = sumFixed;
             return change;
         }
 
     private:
-        ArrayIdx<Scope::local, IntVarIntervalIdx> x;
-        IntVarIntervalIdx y;
-        ValueIdx<Scope::state, uint32_t> nFixed;
-        ValueIdx<Scope::state, int32_t> sumFixed;
+        X x;
+        Y y;
+        Array<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
+        Value<uint32_t, Scope::state> nFixed; // Number of unfixed variables
+        Value<int32_t, Scope::state> sumFixed; // Sum of the unfixed variables
     };
 
 
@@ -77,31 +91,44 @@ namespace cp {
     /**
      * @brief Constraint : sum_i x_i = y.
      * Bound consistency, parallel implementation.
+     * @tparam X Type of x
+     * @tparam Y Type of y
      */
+    template<IntVarIntervalArray X, IntVarInterval Y>
     class Sum {
     public:
         constexpr static bool parallel = true;
 
-        Sum(Allocator& allocator, std::span<IntVarIntervalIdx const> x, IntVarIntervalIdx y) :
-            x(allocator.array<Scope::local, IntVarIntervalIdx>(x)),
+        Sum(Allocator& allocator, X x, Y y) :
+            x(x),
             y(y),
-            nFixed(allocator.value<Scope::state, uint32_t>(0)),
-            sumFixed(allocator.value<Scope::state, int32_t>(0)) {}
+            notFixed(allocator, x.size()),
+            nFixed(allocator, 0),
+            sumFixed(allocator, 0) {
+            int32_t sumMin = 0;
+            int32_t sumMax = 0;
+            for (uint32_t i = 0; i < x.size(); i++) {
+                notFixed[allocator, i] = i;
+                sumMin += x[allocator, i][allocator].min();
+                sumMax += x[allocator, i][allocator].max();
+            }
+            y[allocator].removeBelow(sumMin);
+            y[allocator].removeAbove(sumMax);
+        }
 
         DomainChange propagate(Context ctx) const {
-            uint32_t nFixed = ctx[this->nFixed];
-            uint32_t n = this->x.size();
-            int32_t& sumFixed = ctx[this->sumFixed];
-            IntVarIntervalIdx* x = ctx[this->x];
+            uint32_t nFixed = this->nFixed[ctx];
+            uint32_t* notFixed = this->notFixed[ctx];
+            int32_t& sumFixed = this->sumFixed[ctx];
             
             // Get sum of min and max values of x
             int32_t sumMin = ctx.item.get_local_id(0) == 0 ? sumFixed : 0;
             int32_t sumMax = ctx.item.get_local_id(0) == 0 ? sumFixed : 0;
-            for (uint32_t b = nFixed; b < n; b += ctx.item.get_local_range(0)) {
+            for (uint32_t b = nFixed; b < x.size(); b += ctx.item.get_local_range(0)) {
                 uint32_t i = b + ctx.item.get_local_id(0);
-                if (i < n) {
-                    sumMin += ctx[x[i]].min();
-                    sumMax += ctx[x[i]].max();
+                if (i < x.size()) {
+                    sumMin += x[ctx, notFixed[i]][ctx].min();
+                    sumMax += x[ctx, notFixed[i]][ctx].max();
                 }
 
                 // Swap fixed variables sequentially
@@ -109,15 +136,15 @@ namespace cp {
                 do {
                     std::optional<int32_t> v;
                     std::optional<uint32_t> broadcast;
-                    if (i >= nFixed && i < n) {
-                        v = ctx[x[i]].value();
+                    if (i >= nFixed && i < x.size()) {
+                        v = x[ctx, notFixed[i]][ctx].value();
                         if (v) broadcast = i;
                     }
                     fixed = groupBroadcastAny(ctx, broadcast);
 
                     if (fixed) {
                         if (i == *fixed) {
-                            std::swap(x[nFixed], x[i]);
+                            std::swap(notFixed[nFixed], notFixed[i]);
                             sumFixed += *v;
                         }
                         nFixed++;
@@ -131,28 +158,29 @@ namespace cp {
             sumMin = sycl::reduce_over_group(ctx.item.get_group(), sumMin, sycl::plus<int32_t>());
             sumMax = sycl::reduce_over_group(ctx.item.get_group(), sumMax, sycl::plus<int32_t>());
             if (ctx.item.get_local_id(0) == 0) {
-                change |= ctx[y].removeBelow(sumMin);
-                change |= ctx[y].removeAbove(sumMax);
+                change |= y[ctx].removeBelow(sumMin);
+                change |= y[ctx].removeAbove(sumMax);
             }
             sycl::group_barrier(ctx.item.get_group());
-            sumMin -= ctx[y].max();
-            sumMax -= ctx[y].min();
-            for (uint32_t i = nFixed + ctx.item.get_local_id(0); i < n; i += ctx.item.get_local_range(0)) {
-                int32_t min = ctx[x[i]].min();
-                int32_t max = ctx[x[i]].max();
-                change |= ctx[x[i]].removeBelow(-(sumMax - max));
-                change |= ctx[x[i]].removeAbove(-(sumMin - min));
+            sumMin -= y[ctx].max();
+            sumMax -= y[ctx].min();
+            for (uint32_t i = nFixed + ctx.item.get_local_id(0); i < x.size(); i += ctx.item.get_local_range(0)) {
+                int32_t min = x[ctx, notFixed[i]][ctx].min();
+                int32_t max = x[ctx, notFixed[i]][ctx].max();
+                change |= x[ctx, notFixed[i]][ctx].removeBelow(-(sumMax - max));
+                change |= x[ctx, notFixed[i]][ctx].removeAbove(-(sumMin - min));
             }
 
-            if (ctx.item.get_local_id(0) == 0) ctx[this->nFixed] = nFixed;
+            if (ctx.item.get_local_id(0) == 0) this->nFixed[ctx] = nFixed;
             return groupChange(ctx.item.get_group(), change);
         }
 
     private:
-        ArrayIdx<Scope::local, IntVarIntervalIdx> x;
-        IntVarIntervalIdx y;
-        ValueIdx<Scope::state, uint32_t> nFixed;
-        ValueIdx<Scope::state, int32_t> sumFixed;
+        X x;
+        Y y;
+        Array<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
+        Value<uint32_t, Scope::state> nFixed; // Number of unfixed variables
+        Value<int32_t, Scope::state> sumFixed; // Sum of the unfixed variables
     };
 
 
@@ -162,15 +190,9 @@ namespace cp {
      * @param x Variables
      * @return Sum of the variables
      */
-    template<Constraint... Constraints>
-    inline IntVarIntervalIdx sum(Model<Constraints...>& model, std::span<IntVarIntervalIdx const> x) {
-        int32_t sumMin = 0;
-        int32_t sumMax = 0;
-        for (uint32_t i = 0; i < x.size(); i++) {
-            sumMin += model[x[i]].min();
-            sumMax += model[x[i]].max();
-        }
-        IntVarIntervalIdx y = model.intVarInterval(sumMin, sumMax);
+    template<Constraint... Constraints, IntVarIntervalArray X>
+    inline IntInterval sum(Model<Constraints...>& model, X x) {
+        IntInterval y(model);
         model.constraint(Sum(model, x, y));
         return y;
     }

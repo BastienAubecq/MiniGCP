@@ -8,11 +8,11 @@ namespace cp {
     /**
      * @brief Embarrassingly parallel search solver
      */
-    template<SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
-    class EPSSolver : public Solver<Strategy, DeviceParams, Constraints...> {
+    template<Objective Objective, IntVarIntervalArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    class EPSSolver : public Solver<Objective, Output, Strategy, DeviceParams, Constraints...> {
     public:
         EPSSolver(Model<Constraints...> model, Strategy strategy, DeviceParams params, uint32_t epsDepth) :
-            Solver<Strategy, DeviceParams, Constraints...>(model, strategy, params), epsDepth(epsDepth) {}
+            Solver<Objective, Output, Strategy, DeviceParams, Constraints...>(model, strategy, params), epsDepth(epsDepth) {}
 
         void solve(SearchLimit auto limit) {
             uint32_t epsDepth = this->epsDepth;

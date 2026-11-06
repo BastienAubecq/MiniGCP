@@ -1,8 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <vector>
-#include "MiniGCP/Model.hpp"
 #include "MiniGCP/constraints/Circuit.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
+#include "MiniGCP/state/IntBitset.hpp"
 #include "utils.hpp"
 
 using namespace cp;
@@ -11,62 +10,55 @@ using namespace std;
 
 TEST_CASE("CircuitSeq one cycle", "[CircuitSeq]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> x;
-    for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.intVarBitset(10));
-    }
-    allocator[x[3]].fix(5);
-    allocator[x[5]].fix(7);
-    allocator[x[7]].fix(2);
-    allocator[x[2]].fix(8);
-    CircuitSeq constraint(allocator, allocator.array<Scope::global, IntVarBitsetIdx>(x));
+    IntBitsetArray x(allocator, 10, 10);
+    x[allocator, 3][allocator].fix(5);
+    x[allocator, 5][allocator].fix(7);
+    x[allocator, 7][allocator].fix(2);
+    x[allocator, 2][allocator].fix(8);
+    CircuitSeq constraint(allocator, x);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE_FALSE(allocator[x[8]].contains(3));
-    REQUIRE(allocator[x[0]].size() == 9);
-    REQUIRE(allocator[x[1]].size() == 9);
-    REQUIRE(allocator[x[4]].size() == 9);
-    REQUIRE(allocator[x[6]].size() == 9);
-    REQUIRE(allocator[x[9]].size() == 9);
+    REQUIRE_FALSE(x[allocator, 8][allocator].contains(3));
+    REQUIRE(x[allocator, 0][allocator].size() == 9);
+    REQUIRE(x[allocator, 1][allocator].size() == 9);
+    REQUIRE(x[allocator, 4][allocator].size() == 9);
+    REQUIRE(x[allocator, 6][allocator].size() == 9);
+    REQUIRE(x[allocator, 9][allocator].size() == 9);
 }
 
 TEST_CASE("CircuitSeq few cycles", "[CircuitSeq]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> x;
-    for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.intVarBitset(10));
-    }
-    allocator[x[3]].fix(5);
-    allocator[x[0]].fix(1);
-    allocator[x[1]].fix(9);
-    allocator[x[8]].fix(2);
-    allocator[x[2]].fix(4);
-    allocator[x[4]].fix(7);
-    CircuitSeq constraint(allocator, allocator.array<Scope::global, IntVarBitsetIdx>(x));
+    IntBitsetArray x(allocator, 10, 10);
+    x[allocator, 3][allocator].fix(5);
+    x[allocator, 0][allocator].fix(1);
+    x[allocator, 1][allocator].fix(9);
+    x[allocator, 8][allocator].fix(2);
+    x[allocator, 2][allocator].fix(4);
+    x[allocator, 4][allocator].fix(7);
+    CircuitSeq constraint(allocator, x);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE_FALSE(allocator[x[5]].contains(3));
-    REQUIRE_FALSE(allocator[x[9]].contains(0));
-    REQUIRE_FALSE(allocator[x[7]].contains(8));
-    REQUIRE(allocator[x[6]].size() == 9);
+    REQUIRE_FALSE(x[allocator, 5][allocator].contains(3));
+    REQUIRE_FALSE(x[allocator, 9][allocator].contains(0));
+    REQUIRE_FALSE(x[allocator, 7][allocator].contains(8));
+    REQUIRE(x[allocator, 6][allocator].size() == 9);
 }
 
 TEST_CASE("CircuitSeq full cycle", "[CircuitSeq]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> x;
+    IntBitsetArray x(allocator, 10, 10);
     for (int i = 0; i < 9; i++) {
-        x.push_back(allocator.intVarBitset(i, i + 1));
+        x[allocator, i][allocator].fix(i + 1);
     }
-    x.push_back(allocator.intVarBitset(10));
-    CircuitSeq constraint(allocator, allocator.array<Scope::global, IntVarBitsetIdx>(x));
+    CircuitSeq constraint(allocator, x);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -78,62 +70,55 @@ TEST_CASE("CircuitSeq full cycle", "[CircuitSeq]") {
 
 TEST_CASE("Circuit one cycle", "[Circuit]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> x;
-    for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.intVarBitset(10));
-    }
-    allocator[x[3]].fix(5);
-    allocator[x[5]].fix(7);
-    allocator[x[7]].fix(2);
-    allocator[x[2]].fix(8);
-    Circuit constraint(allocator, allocator.array<Scope::global, IntVarBitsetIdx>(x));
+    IntBitsetArray x(allocator, 10, 10);
+    x[allocator, 3][allocator].fix(5);
+    x[allocator, 5][allocator].fix(7);
+    x[allocator, 7][allocator].fix(2);
+    x[allocator, 2][allocator].fix(8);
+    Circuit constraint(allocator, x);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE_FALSE(allocator[x[8]].contains(3));
-    REQUIRE(allocator[x[0]].size() == 9);
-    REQUIRE(allocator[x[1]].size() == 9);
-    REQUIRE(allocator[x[4]].size() == 9);
-    REQUIRE(allocator[x[6]].size() == 9);
-    REQUIRE(allocator[x[9]].size() == 9);
+    REQUIRE_FALSE(x[allocator, 8][allocator].contains(3));
+    REQUIRE(x[allocator, 0][allocator].size() == 9);
+    REQUIRE(x[allocator, 1][allocator].size() == 9);
+    REQUIRE(x[allocator, 4][allocator].size() == 9);
+    REQUIRE(x[allocator, 6][allocator].size() == 9);
+    REQUIRE(x[allocator, 9][allocator].size() == 9);
 }
 
 TEST_CASE("Circuit few cycles", "[Circuit]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> x;
-    for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.intVarBitset(10));
-    }
-    allocator[x[3]].fix(5);
-    allocator[x[0]].fix(1);
-    allocator[x[1]].fix(9);
-    allocator[x[8]].fix(2);
-    allocator[x[2]].fix(4);
-    allocator[x[4]].fix(7);
-    Circuit constraint(allocator, allocator.array<Scope::global, IntVarBitsetIdx>(x));
+    IntBitsetArray x(allocator, 10, 10);
+    x[allocator, 3][allocator].fix(5);
+    x[allocator, 0][allocator].fix(1);
+    x[allocator, 1][allocator].fix(9);
+    x[allocator, 8][allocator].fix(2);
+    x[allocator, 2][allocator].fix(4);
+    x[allocator, 4][allocator].fix(7);
+    Circuit constraint(allocator, x);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE_FALSE(allocator[x[5]].contains(3));
-    REQUIRE_FALSE(allocator[x[9]].contains(0));
-    REQUIRE_FALSE(allocator[x[7]].contains(8));
-    REQUIRE(allocator[x[6]].size() == 9);
+    REQUIRE_FALSE(x[allocator, 5][allocator].contains(3));
+    REQUIRE_FALSE(x[allocator, 9][allocator].contains(0));
+    REQUIRE_FALSE(x[allocator, 7][allocator].contains(8));
+    REQUIRE(x[allocator, 6][allocator].size() == 9);
 }
 
 TEST_CASE("Circuit full cycle", "[Circuit]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> x;
+    IntBitsetArray x(allocator, 10, 10);
     for (int i = 0; i < 9; i++) {
-        x.push_back(allocator.intVarBitset(i, i + 1));
+        x[allocator, i][allocator].fix(i + 1);
     }
-    x.push_back(allocator.intVarBitset(10));
-    Circuit constraint(allocator, allocator.array<Scope::global, IntVarBitsetIdx>(x));
+    Circuit constraint(allocator, x);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -145,13 +130,11 @@ TEST_CASE("Circuit full cycle", "[Circuit]") {
 
 TEST_CASE("Circuit concurrent few variables", "[Circuit][concurrent]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> x;
-    for (int i = 0; i < 9; i++) {
-        if (i % 2 == 0) x.push_back(allocator.intVarBitset(10));
-        else x.push_back(allocator.intVarBitset(i + 2, i + 2));
+    IntBitsetArray x(allocator, 10, 10);
+    for (int i = 1; i < 8; i += 2) {
+        x[allocator, i][allocator].fix(i + 2);
     }
-    x.push_back(allocator.intVarBitset(10));
-    Circuit constraint(allocator, allocator.array<Scope::global, IntVarBitsetIdx>(x));
+    Circuit constraint(allocator, x);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -159,20 +142,18 @@ TEST_CASE("Circuit concurrent few variables", "[Circuit][concurrent]") {
 
     REQUIRE(c == DomainChange::changed);
     for (int i = 0; i < 9; i++) {
-        if (i % 2 == 0) REQUIRE(allocator[x[i]].size() == 9);
+        if (i % 2 == 0) REQUIRE(x[allocator, i][allocator].size() == 9);
     }
-    REQUIRE_FALSE(allocator[x[9]].contains(1));
+    REQUIRE_FALSE(x[allocator, 9][allocator].contains(1));
 }
 
 TEST_CASE("Circuit concurrent many variables", "[Circuit][concurrent]") {
     Allocator allocator;
-    vector<IntVarBitsetIdx> x;
-    for (int i = 0; i < 99; i++) {
-        if (i % 2 == 0) x.push_back(allocator.intVarBitset(100));
-        else x.push_back(allocator.intVarBitset(i + 2, i + 2));
+    IntBitsetArray x(allocator, 100, 100);
+    for (int i = 1; i < 98; i += 2) {
+        x[allocator, i][allocator].fix(i + 2);
     }
-    x.push_back(allocator.intVarBitset(100));
-    Circuit constraint(allocator, allocator.array<Scope::global, IntVarBitsetIdx>(x));
+    Circuit constraint(allocator, x);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -180,7 +161,7 @@ TEST_CASE("Circuit concurrent many variables", "[Circuit][concurrent]") {
 
     REQUIRE(c == DomainChange::changed);
     for (int i = 0; i < 99; i++) {
-        if (i % 2 == 0) REQUIRE(allocator[x[i]].size() == 99);
+        if (i % 2 == 0) REQUIRE(x[allocator, i][allocator].size() == 99);
     }
-    REQUIRE_FALSE(allocator[x[99]].contains(1));
+    REQUIRE_FALSE(x[allocator, 99][allocator].contains(1));
 }

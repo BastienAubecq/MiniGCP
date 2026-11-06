@@ -7,9 +7,10 @@
 #include <span>
 #include <functional>
 #include "sycl/sycl.hpp"
-#include "MiniGCP/Model.hpp"
+#include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/solver/DeviceParams.hpp"
+#include "MiniGCP/state/DomainChange.hpp"
 
 
 /**

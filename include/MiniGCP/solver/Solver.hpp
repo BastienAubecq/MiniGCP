@@ -14,32 +14,30 @@
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/solver/DataStore.hpp"
 #include "MiniGCP/solver/DeviceParams.hpp"
-#include "MiniGCP/state/ArrayIdx.hpp"
-#include "MiniGCP/state/IntVarBitsetIdx.hpp"
-#include "MiniGCP/state/IntVarIntervalIdx.hpp"
+#include "MiniGCP/state/IntVar.hpp"
+#include "MiniGCP/state/Objective.hpp"
 
 namespace cp {
 
     /**
      * @brief Device-side solver
      */
-    template<SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    template<Objective Objective, IntVarIntervalArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class DeviceSolver {
     public:
-        ProblemType type;
-        IntVarIntervalIdx objective;
+        Objective objective;
         Strategy strategy;
-        DataStore<DecisionOf<Strategy>, DeviceParams::localLocal, DeviceParams::localState> data;
+        DataStore<DecisionOf<Strategy>, Output, DeviceParams::localLocal, DeviceParams::localState> data;
         ConstraintStore<Constraints...> constraints;
         SearchStatistics* statistics;
         bool firstSearch = true;
 
-        DeviceSolver(sycl::queue& queue, Model<Constraints...> model, Strategy strategy, uint32_t nGroups) :
-            type(model.type), objective(model.objective), strategy(strategy),
-            data(queue, model.getData(), model.getTemporarySize(), model.output, nGroups, strategy.maxDepth(), SearchStatistics(model.type).objective),
+        DeviceSolver(sycl::queue& queue, Model<Constraints...> model, Objective objective, Output output, Strategy strategy, uint32_t nGroups) :
+            objective(objective), strategy(strategy),
+            data(queue, model.getData(), model.getTemporarySize(), output, nGroups, strategy.maxDepth()),
             constraints(queue, model.getConstraints()) {
             statistics = sycl::malloc_device<SearchStatistics>(1, queue);
-            SearchStatistics stats(model.type);
+            SearchStatistics stats;
             queue.memcpy(statistics, &stats, sizeof(SearchStatistics)).wait();
         }
 
@@ -64,15 +62,11 @@ namespace cp {
         bool exploreCurrent(Context ctx) const {
             if (ctx.item.get_local_id(0) == 0) statistics->addNode();
             bool inconsistent = false;
-            if (type != ProblemType::satisfaction) { // Find a better solution than the global best
-                if (ctx.item.get_local_id(0) == 0) {
-                    DomainChange change = type == ProblemType::minimization ?
-                        ctx[objective].removeAbove(statistics->objective - 1) :
-                        ctx[objective].removeBelow(statistics->objective + 1);
-                    if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) inconsistent = true;
-                }
-                inconsistent = sycl::group_broadcast(ctx.item.get_group(), inconsistent, 0);
+            if (ctx.item.get_local_id(0) == 0) {
+                DomainChange change = objective.update(ctx, statistics->objective);
+                if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) inconsistent = true;
             }
+            inconsistent = sycl::group_broadcast(ctx.item.get_group(), inconsistent, 0);
             sycl::group_barrier(ctx.item.get_group());
             if (!inconsistent) inconsistent = constraints.fixpoint(ctx);
             if (inconsistent && ctx.item.get_local_id(0) == 0) statistics->addFailure();
@@ -95,12 +89,12 @@ namespace cp {
                 sycl::group_barrier(ctx.item.get_group());
             }
             else {
-                int32_t obj = type == ProblemType::satisfaction ? 1 : ctx[objective].max();
+                int32_t obj = objective.value(ctx);
                 data.solution(ctx, obj);
                 if (ctx.item.get_local_id(0) == 0) {
                     //printf("Objective: %d\n", obj);
                     statistics->addSolution();
-                    statistics->updateObjective(type, obj);
+                    statistics->updateObjective(obj);
                 }
             }
             return !decision;
@@ -140,15 +134,14 @@ namespace cp {
     /**
      * @brief CP solver base class
      */
-    template<SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    template<Objective Objective, IntVarIntervalArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class Solver {
     public:
-        Solver(Model<Constraints...> model, Strategy strategy, DeviceParams params) :
+        Solver(Model<Constraints...> model, Objective objective, Output output, Strategy strategy, DeviceParams params) :
             queue(params.selector, sycl::property_list()),
             params(params),
-            solver(queue, model, strategy, params.nGroups),
-            statistics(model.type),
-            solution(model.output.size()) {}
+            solver(queue, model, objective, output, strategy, params.nGroups),
+            solution(output.size()) {}
 
         ~Solver() {
             solver.destroy(queue);
@@ -193,7 +186,7 @@ namespace cp {
     protected:
         sycl::queue queue;
         DeviceParams params;
-        DeviceSolver<Strategy, DeviceParams, Constraints...> solver;
+        DeviceSolver<Objective, Output, Strategy, DeviceParams, Constraints...> solver;
         SearchStatistics statistics;
         std::vector<int32_t> solution;
 
@@ -204,7 +197,7 @@ namespace cp {
          * @param kernel The kernel
          */
         template<typename Kernel>
-        void parallelFor(DeviceSolver<Strategy, DeviceParams, Constraints...>& solver, uint32_t nGroups, Kernel kernel) {
+        void parallelFor(DeviceSolver<Objective, Output, Strategy, DeviceParams, Constraints...>& solver, uint32_t nGroups, Kernel kernel) {
             queue.submit([=](sycl::handler& handler) {
                 auto local = solver.data.getLocalMemory(handler);
                 sycl::stream error(8192, 1024, handler);

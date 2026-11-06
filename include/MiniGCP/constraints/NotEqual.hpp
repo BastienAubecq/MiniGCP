@@ -1,37 +1,37 @@
 #ifndef MINIGCP_NOT_EQUAL
 #define MINIGCP_NOT_EQUAL
 
-#include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarBitsetIdx.hpp"
+#include "MiniGCP/state/IntVar.hpp"
 
 namespace cp {
 
     /**
      * @brief Constraint : x != y
+     * @tparam X Type of x
+     * @tparam Y Type of y
      */
+    template<IntVar X, IntVar Y>
     class NotEqual {
     public:
         constexpr static bool parallel = false;
 
-        NotEqual(IntVarBitsetIdx x, IntVarBitsetIdx y) :
-            x(x), y(y) {}
+        NotEqual(X x, Y y) : x(x), y(y) {}
 
         DomainChange propagate(Context ctx) const {
-            std::optional<int32_t> v = ctx[x].value(); 
-            if (v) return ctx[y].remove(*v);
-            v = ctx[y].value();
-            if (v) return ctx[x].remove(*v);
+            std::optional<int32_t> v = x[ctx].value(); 
+            if (v) return y[ctx].remove(*v);
+            v = y[ctx].value();
+            if (v) return x[ctx].remove(*v);
             return DomainChange::none;
         }
 
     private:
-        IntVarBitsetIdx x;
-        IntVarBitsetIdx y;
+        X x;
+        Y y;
     };
 
 
-    inline NotEqual operator!=(IntVarBitsetIdx x, IntVarBitsetIdx y) {
+    inline auto operator!=(IntVar auto x, IntVar auto y) {
         return NotEqual(x, y);
     }
 

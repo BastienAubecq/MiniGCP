@@ -2,7 +2,6 @@
 #define MINIGCP_CONSTRAINT
 
 #include <concepts>
-#include <type_traits>
 #include "sycl/sycl.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/DomainChange.hpp"

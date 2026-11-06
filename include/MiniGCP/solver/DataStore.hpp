@@ -13,23 +13,22 @@
 #include "MiniGCP/search/SearchLimit.hpp"
 #include "MiniGCP/search/SearchStatistics.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/ArrayIdx.hpp"
-#include "MiniGCP/state/IntVarBitsetIdx.hpp"
 
 namespace cp {
 
     /**
      * @brief Device-side data
      * @tparam Decision Decision type
+     * @tparam Output Output array type
      * @tparam localLocal Whether to store local data in local memory
      * @tparam localState Whether to store state data in local memory
      */
-    template<Decision Decision, bool localLocal, bool localState>
+    template<Decision Decision, IntVarIntervalArray Output, bool localLocal, bool localState>
     class DataStore {
     public:
         DataStore(
             sycl::queue& queue, std::array<std::span<std::byte const>, 3> data, uint32_t temporarySize,
-            ArrayIdx<Scope::global, IntVarBitsetIdx> output, size_t nGroups, uint32_t maxDepth, int32_t objective
+            Output output, size_t nGroups, uint32_t maxDepth
         ) : temporarySize(temporarySize), output(output) {
             globalSize = data[0].size();
             localSize = data[1].size();
@@ -42,7 +41,7 @@ namespace cp {
 
             int32_t* outputInit = new int32_t[(output.size() + 1) * nGroups];
             for (size_t i = 0; i < nGroups; i++) {
-                outputInit[(output.size() + 1) * i + output.size()] = objective;
+                outputInit[(output.size() + 1) * i + output.size()] = INT32_MAX;
             }
 
             globalData = globalSize == 0 ? nullptr : sycl::malloc_device<std::byte>(globalSize, queue);
@@ -212,7 +211,7 @@ namespace cp {
          */
         void solution(Context ctx, int32_t objective) const {
             for (uint32_t i = ctx.item.get_local_id(0); i < output.size(); i += ctx.item.get_local_range(0)) {
-                outputData[(output.size() + 1) * ctx.item.get_group(0) + i] = ctx[ctx[output][i]].min();
+                outputData[(output.size() + 1) * ctx.item.get_group(0) + i] = output[ctx, i][ctx].min();
             }
             if (ctx.item.get_local_id(0) == 0) {
                 outputData[(output.size() + 1) * ctx.item.get_group(0) + output.size()] = objective;
@@ -246,7 +245,7 @@ namespace cp {
         int32_t* outputData; // Values of the output variables
         Decision* decisions; // Stack of decisions
         uint32_t* tops; // Top of the stacks
-        ArrayIdx<Scope::global, IntVarBitsetIdx> output;
+        Output output;
 
         /**
          * @brief Copy some data from a source to a destination with a group of threads.

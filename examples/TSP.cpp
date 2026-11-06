@@ -62,26 +62,26 @@ public:
  * @return The solver
  */
 static auto getTSPSolver(TSPInstance const& instance, IsDeviceParams auto params) {
-    Model<AllDifferentFWC, Circuit, Element1D, Sum> model(ProblemType::minimization);
+    Model<
+        AllDifferentFWC<IntBitsetArray>,
+        Circuit<IntBitsetArray>,
+        Element1D<IntBitset, IntInterval>,
+        Sum<IntIntervalArray, IntInterval>
+    > model;
+
     uint32_t n = instance.n;
-
-    vector<IntVarBitsetIdx> succ;
-    for (uint32_t i = 0; i < n; i++) {
-        succ.push_back(model.intVarBitset(n));
-    }
-    auto succArray = model.array<Scope::global, IntVarBitsetIdx>(succ);
+    IntBitsetArray succ(model, n, n);
     model.constraint(AllDifferentFWC(model, succ));
-    model.constraint(Circuit(model, succArray));
-    model.output = succArray;
-
-    vector<IntVarIntervalIdx> cost;
+    model.constraint(Circuit(model, succ));
+    IntIntervalArray cost(model, n);
     for (uint32_t i = 0; i < n; i++) {
-        cost.push_back(element1D(model, model.array<Scope::global>(span(instance.distances.data() + i * n, n)), succ[i]));
+        span<int32_t const> distances(instance.distances.data() + i * n, n);
+        model.constraint(Element1D(model, Array(model, distances), succ[i], cost[i]));
     }
-    model.objective = sum(model, cost);
+    IntInterval objective = sum(model, cost);
 
-    FirstFail strategy(model.output);
-    return DFSSolver(model, strategy, params);
+    FirstFail strategy(succ);
+    return DFSSolver(model, Minimization(objective), succ, strategy, params);
 }
 
 

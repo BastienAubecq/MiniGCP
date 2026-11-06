@@ -1,15 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
-#include "MiniGCP/Model.hpp"
 #include "MiniGCP/constraints/NotEqual.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
+#include "MiniGCP/state/IntBitset.hpp"
 #include "utils.hpp"
 
 using namespace cp;
 
 TEST_CASE("NotEqual neither fixed", "[NotEqual]") {
     Allocator allocator;
-    IntVarBitsetIdx x = allocator.intVarBitset(3);
-    IntVarBitsetIdx y = allocator.intVarBitset(3);
+    IntBitset x(allocator, 3);
+    IntBitset y(allocator, 3);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -17,14 +16,14 @@ TEST_CASE("NotEqual neither fixed", "[NotEqual]") {
     })[0];
 
     REQUIRE(c == DomainChange::none);
-    REQUIRE(allocator[x].size() == 3);
-    REQUIRE(allocator[y].size() == 3);
+    REQUIRE(x[allocator].size() == 3);
+    REQUIRE(y[allocator].size() == 3);
 }
 
 TEST_CASE("NotEqual first fixed", "[NotEqual]") {
     Allocator allocator;
-    IntVarBitsetIdx x = allocator.intVarBitset(2);
-    IntVarBitsetIdx y = allocator.intVarBitset(1);
+    IntBitset x(allocator, 2);
+    IntBitset y(allocator, 1);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -32,14 +31,14 @@ TEST_CASE("NotEqual first fixed", "[NotEqual]") {
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE(allocator[x].size() == 1);
-    REQUIRE(allocator[x].min() == 1);
+    REQUIRE(x[allocator].size() == 1);
+    REQUIRE(x[allocator].min() == 1);
 }
 
 TEST_CASE("NotEqual second fixed", "[NotEqual]") {
     Allocator allocator;
-    IntVarBitsetIdx x = allocator.intVarBitset(1);
-    IntVarBitsetIdx y = allocator.intVarBitset(2);
+    IntBitset x(allocator, 1);
+    IntBitset y(allocator, 2);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -47,16 +46,16 @@ TEST_CASE("NotEqual second fixed", "[NotEqual]") {
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE(allocator[y].size() == 1);
-    REQUIRE(allocator[y].min() == 1);
+    REQUIRE(y[allocator].size() == 1);
+    REQUIRE(y[allocator].min() == 1);
 }
 
 TEST_CASE("NotEqual both fixed", "[NotEqual]") {
     Allocator allocator;
-    IntVarBitsetIdx x = allocator.intVarBitset(2);
-    IntVarBitsetIdx y = allocator.intVarBitset(2);
-    allocator[x].fix(0);
-    allocator[y].fix(1);
+    IntBitset x(allocator, 2);
+    IntBitset y(allocator, 2);
+    x[allocator].fix(0);
+    y[allocator].fix(1);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -68,8 +67,8 @@ TEST_CASE("NotEqual both fixed", "[NotEqual]") {
 
 TEST_CASE("NotEqual inconsistency", "[NotEqual]") {
     Allocator allocator;
-    IntVarBitsetIdx x = allocator.intVarBitset(1);
-    IntVarBitsetIdx y = allocator.intVarBitset(1);
+    IntBitset x(allocator, 1);
+    IntBitset y(allocator, 1);
     NotEqual constraint(x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {

@@ -3,50 +3,56 @@
 
 #include <utility>
 #include <span>
-#include "MiniGCP/Model.hpp"
+#include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/utils.hpp"
-#include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/ArrayIdx.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
-#include "MiniGCP/state/IntVarBitsetIdx.hpp"
-#include "MiniGCP/state/ValueIdx.hpp"
+#include "MiniGCP/state/Array.hpp"
+#include "MiniGCP/state/IntVar.hpp"
+#include "MiniGCP/state/Value.hpp"
 
 namespace cp {
 
     /**
      * @brief Constraint : x_i != x_j for all i, j.
      * Forward checking filtering, sequential implementation.
+     * @tparam X Type of x
      */
+    template<IntVarArray X>
     class AllDifferentFWCSeq {
     public:
         constexpr static bool parallel = false;
 
-        AllDifferentFWCSeq(Allocator& allocator, std::span<IntVarBitsetIdx const> variables) :
-            variables(allocator.array<Scope::local, IntVarBitsetIdx>(variables)),
-            nFixed(allocator.value<Scope::state, uint32_t>(0)) {}
+        AllDifferentFWCSeq(Allocator& allocator, X x) :
+            x(x),
+            notFixed(allocator, x.size()),
+            nFixed(allocator, 0) {
+            for (uint32_t i = 0; i < x.size(); i++) {
+                notFixed[allocator, i] = i;
+            }
+        }
 
         DomainChange propagate(Context ctx) const {
-            uint32_t nFixed = ctx[this->nFixed];
-            IntVarBitsetIdx* vars = ctx[variables];
+            uint32_t nFixed = this->nFixed[ctx];
+            uint32_t* notFixed = this->notFixed[ctx];
             DomainChange change = DomainChange::none;
 
-            for (uint32_t i = nFixed; i < variables.size(); i++) {
-                std::optional<int32_t> v = ctx[vars[i]].value();
+            for (uint32_t i = nFixed; i < x.size(); i++) {
+                std::optional<int32_t> v = x[ctx, notFixed[i]][ctx].value();
                 if (v) {
-                    std::swap(vars[nFixed++], vars[i]);
-                    for (uint32_t j = nFixed; j < variables.size(); j++) {
-                        change |= ctx[vars[j]].remove(*v);
+                    std::swap(notFixed[nFixed++], notFixed[i]);
+                    for (uint32_t j = nFixed; j < x.size(); j++) {
+                        change |= x[ctx, notFixed[j]][ctx].remove(*v);
                     }
                 }
             }
 
-            ctx[this->nFixed] = nFixed;
+            this->nFixed[ctx] = nFixed;
             return change;
         }
 
     private:
-        ArrayIdx<Scope::local, IntVarBitsetIdx> variables;
-        ValueIdx<Scope::state, uint32_t> nFixed;
+        X x;
+        Array<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
+        Value<uint32_t, Scope::state> nFixed; // Number of unfixed variables
     };
 
 
@@ -54,50 +60,57 @@ namespace cp {
     /**
      * @brief Constraint : xi != xj for all i, j.
      * Forward checking filtering, parallel implementation.
+     * @tparam X Type of x
      */
+    template<IntVarArray X>
     class AllDifferentFWC {
     public:
         constexpr static bool parallel = true;
 
-        AllDifferentFWC(Allocator& allocator, std::span<IntVarBitsetIdx const> variables) :
-            variables(allocator.array<Scope::local, IntVarBitsetIdx>(variables)),
-            nFixed(allocator.value<Scope::state, uint32_t>(0)) {}
+        AllDifferentFWC(Allocator& allocator, X x) :
+            x(x),
+            notFixed(allocator, x.size()),
+            nFixed(allocator, 0) {
+            for (uint32_t i = 0; i < x.size(); i++) {
+                notFixed[allocator, i] = i;
+            }
+        }
 
         DomainChange propagate(Context ctx) const {
-            uint32_t nFixed = ctx[this->nFixed];
-            uint32_t n = variables.size();
-            IntVarBitsetIdx* vars = ctx[variables];
+            uint32_t nFixed = this->nFixed[ctx];
+            uint32_t* notFixed = this->notFixed[ctx];
             DomainChange change = DomainChange::none;
 
-            for (uint32_t b = nFixed; b < n; b += ctx.item.get_local_range(0)) {
+            for (uint32_t b = nFixed; b < x.size(); b += ctx.item.get_local_range(0)) {
                 uint32_t i = b + ctx.item.get_local_id(0);
                 std::optional<uint32_t> fixed;
                 do {
                     // Broadcast any fixed variable
-                    bool broadcast = i >= nFixed && i < n && ctx[vars[i]].value();
+                    bool broadcast = i >= nFixed && i < x.size() && x[ctx, notFixed[i]][ctx].value();
                     fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
                     
                     if (fixed) {
-                        if (ctx.item.get_local_id(0) == 0) std::swap(vars[nFixed], vars[*fixed]);
+                        if (ctx.item.get_local_id(0) == 0) std::swap(notFixed[nFixed], notFixed[*fixed]);
                         sycl::group_barrier(ctx.item.get_group());
 
-                        // Remove fixed value from other variables
-                        int32_t v = ctx[vars[nFixed++]].min();
-                        for (uint32_t j = nFixed + ctx.item.get_local_id(0); j < n; j += ctx.item.get_local_range(0)) {
-                            change |= ctx[vars[j]].remove(v);
+                        // Remove fixed value from other x
+                        int32_t v = x[ctx, notFixed[nFixed++]][ctx].min();
+                        for (uint32_t j = nFixed + ctx.item.get_local_id(0); j < x.size(); j += ctx.item.get_local_range(0)) {
+                            change |= x[ctx, notFixed[j]][ctx].remove(v);
                         }
                         sycl::group_barrier(ctx.item.get_group());
                     }
                 } while (fixed);
             }
             
-            if (ctx.item.get_local_id(0) == 0) ctx[this->nFixed] = nFixed;
+            if (ctx.item.get_local_id(0) == 0) this->nFixed[ctx] = nFixed;
             return groupChange(ctx.item.get_group(), change);
         }
 
     private:
-        ArrayIdx<Scope::local, IntVarBitsetIdx> variables;
-        ValueIdx<Scope::state, uint32_t> nFixed;
+        X x;
+        Array<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
+        Value<uint32_t, Scope::state> nFixed; // Number of unfixed variables
     };
 
 }

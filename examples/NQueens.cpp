@@ -14,23 +14,24 @@ using namespace cp;
  * @return The solver
  */
 static auto getNQueensSolver(uint32_t n, IsDeviceParams auto params) {
-    Model<AllDifferentFWC> model(ProblemType::satisfaction);
-    vector<IntVarBitsetIdx> variables;
-    vector<IntVarBitsetIdx> diag1;
-    vector<IntVarBitsetIdx> diag2;
-    for (uint32_t i = 0; i < n; i++) {
-        IntVarBitsetIdx q = model.intVarBitset(n);
-        variables.push_back(q);
-        diag1.push_back(q + i);
-        diag2.push_back(q - i);
-    }
-    model.constraint(AllDifferentFWC(model, variables));
-    model.constraint(AllDifferentFWC(model, diag1));
-    model.constraint(AllDifferentFWC(model, diag2));
-    model.output = model.array<Scope::global, IntVarBitsetIdx>(variables);
+    Model<
+        AllDifferentFWC<IntBitsetArray>,
+        AllDifferentFWC<AddN<IntBitsetArray>>,
+        AllDifferentFWC<AddN<Neg1<IntBitsetArray>>>
+    > model;
 
-    FirstFail strategy(model.output);
-    return DFSSolver(model, strategy, params);
+    IntBitsetArray variables(model, n, n);
+    vector<int32_t> indicesVec;
+    for (uint32_t i = 0; i < n; i++) {
+        indicesVec.push_back(i);
+    }
+    Array<int32_t> indices(model, indicesVec);
+    model.constraint(AllDifferentFWC(model, variables));
+    model.constraint(AllDifferentFWC(model, variables + indices));
+    model.constraint(AllDifferentFWC(model, -variables + indices));
+
+    FirstFail strategy(variables);
+    return DFSSolver(model, Satisfaction(), variables, strategy, params);
 }
 
 
@@ -42,22 +43,21 @@ static auto getNQueensSolver(uint32_t n, IsDeviceParams auto params) {
  * @return The solver
  */
 static auto getNQueensBinarySolver(uint32_t n, IsDeviceParams auto params) {
-    Model<NotEqual> model(ProblemType::satisfaction);
-    vector<IntVarBitsetIdx> variables;
-    for (uint32_t i = 0; i < n; i++) {
-        variables.push_back(model.intVarBitset(n));
-    }
+    Model<
+        NotEqual<Add<IntBitset>, Add<IntBitset>>
+    > model;
+
+    IntBitsetArray variables(model, n, n);
     for (uint32_t i = 0; i < n; i++) {
         for (uint32_t j = 0; j < i; j++) {
-            model.constraint(variables[i] != variables[j]);
+            model.constraint(variables[i] + 0 != variables[j] + 0);
             model.constraint(variables[i] + i != variables[j] + j);
             model.constraint(variables[i] - i != variables[j] - j);
         }
     }
-    model.output = model.array<Scope::global, IntVarBitsetIdx>(variables);
 
-    FirstFail strategy(model.output);
-    return DFSSolver(model, strategy, params);
+    FirstFail strategy(variables);
+    return DFSSolver(model, Satisfaction(), variables, strategy, params);
 }
 
 

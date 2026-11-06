@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <ostream>
-#include "MiniGCP/Model.hpp"
 
 namespace cp {
 
@@ -30,7 +29,7 @@ namespace cp {
         /**
          * @brief Best objective value found for an optimization problem
          */
-        int32_t objective;
+        int32_t objective = INT32_MAX;
 
         /**
          * @brief Index of the next subproblem to solve
@@ -41,13 +40,6 @@ namespace cp {
          * @brief Whether the search tree was fully explored
          */
         bool completed = false;
-
-
-        SearchStatistics(ProblemType type) : objective(
-            type == ProblemType::minimization ? INT32_MAX :
-            type == ProblemType::maximization ? INT32_MIN :
-            0
-        ) {}
 
 
         /**
@@ -76,13 +68,10 @@ namespace cp {
         
         /**
          * @brief Update the objective value
-         * @param type Problem type
          * @param value New value
          */
-        void updateObjective(ProblemType type, int32_t value) {
-            if (type == ProblemType::minimization) i32_atomic(objective).fetch_min(value);
-            else if (type == ProblemType::maximization) i32_atomic(objective).fetch_max(value);
-            else objective = value;
+        void updateObjective(int32_t value) {
+            i32_atomic(objective).fetch_min(value);
         }
 
         /**

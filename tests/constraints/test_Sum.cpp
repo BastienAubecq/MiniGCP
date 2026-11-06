@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <vector>
-#include "MiniGCP/Model.hpp"
 #include "MiniGCP/constraints/Sum.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
+#include "MiniGCP/state/Array.hpp"
+#include "MiniGCP/state/IntInterval.hpp"
 #include "utils.hpp"
 
 using namespace cp;
@@ -11,35 +11,35 @@ using namespace std;
 
 TEST_CASE("SumSeq update y", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x {
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2)
-    };
-    IntVarIntervalIdx y = allocator.intVarInterval(-10, 10);
-    SumSeq constraint(allocator, x, y);
+    IntIntervalArray x(allocator, -10, 10, 3);
+    IntInterval y(allocator, -10, 10);
+    Sum constraint(allocator, x, y);
+    for (uint32_t i = 0; i < 3; i++) {
+        x[i][allocator].removeBelow(-1);
+        x[i][allocator].removeAbove(2);
+    }
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE(allocator[x[0]].size() == 4);
-    REQUIRE(allocator[x[1]].size() == 4);
-    REQUIRE(allocator[x[2]].size() == 4);
-    REQUIRE(allocator[y].min() == -3);
-    REQUIRE(allocator[y].max() == 6);
-    REQUIRE(allocator[y].size() == 10);
+    REQUIRE(x[allocator, 0][allocator].size() == 4);
+    REQUIRE(x[allocator, 1][allocator].size() == 4);
+    REQUIRE(x[allocator, 2][allocator].size() == 4);
+    REQUIRE(y[allocator].min() == -3);
+    REQUIRE(y[allocator].max() == 6);
+    REQUIRE(y[allocator].size() == 10);
 }
 
 TEST_CASE("SumSeq update one x_i", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x {
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-10, 10),
-        allocator.intVarInterval(-1, 2)
-    };
-    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
+    Array<IntInterval> x(allocator, vector {
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -10, 10),
+        IntInterval(allocator, -1, 2)
+    });
+    IntInterval y(allocator, -1, 2);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -47,22 +47,22 @@ TEST_CASE("SumSeq update one x_i", "[SumSeq]") {
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE(allocator[x[0]].size() == 4);
-    REQUIRE(allocator[x[2]].size() == 4);
-    REQUIRE(allocator[y].size() == 4);
-    REQUIRE(allocator[x[1]].min() == -5);
-    REQUIRE(allocator[x[1]].max() == 4);
-    REQUIRE(allocator[x[1]].size() == 10);
+    REQUIRE(x[allocator, 0][allocator].size() == 4);
+    REQUIRE(x[allocator, 2][allocator].size() == 4);
+    REQUIRE(y[allocator].size() == 4);
+    REQUIRE(x[allocator, 1][allocator].min() == -5);
+    REQUIRE(x[allocator, 1][allocator].max() == 4);
+    REQUIRE(x[allocator, 1][allocator].size() == 10);
 }
 
 TEST_CASE("SumSeq no change", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x {
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2)
-    };
-    IntVarIntervalIdx y = allocator.intVarInterval(-3, 6);
+    Array<IntInterval> x(allocator, vector {
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -1, 2)
+    });
+    IntInterval y(allocator, -3, 6);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -74,12 +74,12 @@ TEST_CASE("SumSeq no change", "[SumSeq]") {
 
 TEST_CASE("SumSeq inconsistency", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x {
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2)
-    };
-    IntVarIntervalIdx y = allocator.intVarInterval(7, 10);
+    Array<IntInterval> x(allocator, vector {
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -1, 2)
+    });
+    IntInterval y(allocator, 7, 10);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -91,11 +91,8 @@ TEST_CASE("SumSeq inconsistency", "[SumSeq]") {
 
 TEST_CASE("SumSeq update all x_i", "[SumSeq]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x;
-    for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.intVarInterval(-20, 1));
-    }
-    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
+    IntIntervalArray x(allocator, -20, 1, 10);
+    IntInterval y(allocator, -1, 2);
     SumSeq constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -104,45 +101,45 @@ TEST_CASE("SumSeq update all x_i", "[SumSeq]") {
 
     REQUIRE(c == DomainChange::changed);
     for (int i = 0; i < 10; i++) {
-        REQUIRE(allocator[x[i]].min() == -10);
-        REQUIRE(allocator[x[i]].max() == 1);
-        REQUIRE(allocator[x[i]].size() == 12);
+        REQUIRE(x[allocator, i][allocator].min() == -10);
+        REQUIRE(x[allocator, i][allocator].max() == 1);
+        REQUIRE(x[allocator, i][allocator].size() == 12);
     }
-    REQUIRE(allocator[y].size() == 4);
+    REQUIRE(y[allocator].size() == 4);
 }
 
 
 TEST_CASE("Sum update y", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x {
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2)
-    };
-    IntVarIntervalIdx y = allocator.intVarInterval(-10, 10);
+    IntIntervalArray x(allocator, -10, 10, 3);
+    IntInterval y(allocator, -10, 10);
     Sum constraint(allocator, x, y);
+    for (uint32_t i = 0; i < 3; i++) {
+        x[i][allocator].removeBelow(-1);
+        x[i][allocator].removeAbove(2);
+    }
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE(allocator[x[0]].size() == 4);
-    REQUIRE(allocator[x[1]].size() == 4);
-    REQUIRE(allocator[x[2]].size() == 4);
-    REQUIRE(allocator[y].min() == -3);
-    REQUIRE(allocator[y].max() == 6);
-    REQUIRE(allocator[y].size() == 10);
+    REQUIRE(x[allocator, 0][allocator].size() == 4);
+    REQUIRE(x[allocator, 1][allocator].size() == 4);
+    REQUIRE(x[allocator, 2][allocator].size() == 4);
+    REQUIRE(y[allocator].min() == -3);
+    REQUIRE(y[allocator].max() == 6);
+    REQUIRE(y[allocator].size() == 10);
 }
 
 TEST_CASE("Sum update one x_i", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x {
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-10, 10),
-        allocator.intVarInterval(-1, 2)
-    };
-    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
+    Array<IntInterval> x(allocator, vector {
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -10, 10),
+        IntInterval(allocator, -1, 2)
+    });
+    IntInterval y(allocator, -1, 2);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -150,22 +147,22 @@ TEST_CASE("Sum update one x_i", "[Sum]") {
     })[0];
 
     REQUIRE(c == DomainChange::changed);
-    REQUIRE(allocator[x[0]].size() == 4);
-    REQUIRE(allocator[x[2]].size() == 4);
-    REQUIRE(allocator[y].size() == 4);
-    REQUIRE(allocator[x[1]].min() == -5);
-    REQUIRE(allocator[x[1]].max() == 4);
-    REQUIRE(allocator[x[1]].size() == 10);
+    REQUIRE(x[allocator, 0][allocator].size() == 4);
+    REQUIRE(x[allocator, 2][allocator].size() == 4);
+    REQUIRE(y[allocator].size() == 4);
+    REQUIRE(x[allocator, 1][allocator].min() == -5);
+    REQUIRE(x[allocator, 1][allocator].max() == 4);
+    REQUIRE(x[allocator, 1][allocator].size() == 10);
 }
 
 TEST_CASE("Sum no change", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x {
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2)
-    };
-    IntVarIntervalIdx y = allocator.intVarInterval(-3, 6);
+    Array<IntInterval> x(allocator, vector {
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -1, 2)
+    });
+    IntInterval y(allocator, -3, 6);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -177,12 +174,12 @@ TEST_CASE("Sum no change", "[Sum]") {
 
 TEST_CASE("Sum inconsistency", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x {
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2),
-        allocator.intVarInterval(-1, 2)
-    };
-    IntVarIntervalIdx y = allocator.intVarInterval(7, 10);
+    Array<IntInterval> x(allocator, vector {
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -1, 2),
+        IntInterval(allocator, -1, 2)
+    });
+    IntInterval y(allocator, 7, 10);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -194,11 +191,8 @@ TEST_CASE("Sum inconsistency", "[Sum]") {
 
 TEST_CASE("Sum update all x_i", "[Sum]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x;
-    for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.intVarInterval(-20, 1));
-    }
-    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
+    IntIntervalArray x(allocator, -20, 1, 10);
+    IntInterval y(allocator, -1, 2);
     Sum constraint(allocator, x, y);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
@@ -207,21 +201,18 @@ TEST_CASE("Sum update all x_i", "[Sum]") {
 
     REQUIRE(c == DomainChange::changed);
     for (int i = 0; i < 10; i++) {
-        REQUIRE(allocator[x[i]].min() == -10);
-        REQUIRE(allocator[x[i]].max() == 1);
-        REQUIRE(allocator[x[i]].size() == 12);
+        REQUIRE(x[allocator, i][allocator].min() == -10);
+        REQUIRE(x[allocator, i][allocator].max() == 1);
+        REQUIRE(x[allocator, i][allocator].size() == 12);
     }
-    REQUIRE(allocator[y].size() == 4);
+    REQUIRE(y[allocator].size() == 4);
 }
 
 
 TEST_CASE("Sum concurrent few variables", "[Sum][concurrent]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x;
-    for (int i = 0; i < 10; i++) {
-        x.push_back(allocator.intVarInterval(-20, 1));
-    }
-    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
+    IntIntervalArray x(allocator, -20, 1, 10);
+    IntInterval y(allocator, -1, 2);
     Sum constraint(allocator, x, y);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
@@ -230,20 +221,17 @@ TEST_CASE("Sum concurrent few variables", "[Sum][concurrent]") {
 
     REQUIRE(c == DomainChange::changed);
     for (int i = 0; i < 10; i++) {
-        REQUIRE(allocator[x[i]].min() == -10);
-        REQUIRE(allocator[x[i]].max() == 1);
-        REQUIRE(allocator[x[i]].size() == 12);
+        REQUIRE(x[allocator, i][allocator].min() == -10);
+        REQUIRE(x[allocator, i][allocator].max() == 1);
+        REQUIRE(x[allocator, i][allocator].size() == 12);
     }
-    REQUIRE(allocator[y].size() == 4);
+    REQUIRE(y[allocator].size() == 4);
 }
 
 TEST_CASE("Sum concurrent many variables", "[Sum][concurrent]") {
     Allocator allocator;
-    vector<IntVarIntervalIdx> x;
-    for (int i = 0; i < 100; i++) {
-        x.push_back(allocator.intVarInterval(-200, 1));
-    }
-    IntVarIntervalIdx y = allocator.intVarInterval(-1, 2);
+    IntIntervalArray x(allocator, -200, 1, 100);
+    IntInterval y(allocator, -1, 2);
     Sum constraint(allocator, x, y);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
@@ -252,9 +240,9 @@ TEST_CASE("Sum concurrent many variables", "[Sum][concurrent]") {
 
     REQUIRE(c == DomainChange::changed);
     for (int i = 0; i < 100; i++) {
-        REQUIRE(allocator[x[i]].min() == -100);
-        REQUIRE(allocator[x[i]].max() == 1);
-        REQUIRE(allocator[x[i]].size() == 102);
+        REQUIRE(x[allocator, i][allocator].min() == -100);
+        REQUIRE(x[allocator, i][allocator].max() == 1);
+        REQUIRE(x[allocator, i][allocator].size() == 102);
     }
-    REQUIRE(allocator[y].size() == 4);
+    REQUIRE(y[allocator].size() == 4);
 }

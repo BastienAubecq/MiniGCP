@@ -1,21 +1,16 @@
 #include <catch2/catch_test_macros.hpp>
 #include <vector>
-#include <span>
 #include "sycl/sycl.hpp"
-#include "MiniGCP/Model.hpp"
-#include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/IntVarIntervalIdx.hpp"
-#include "MiniGCP/state/IntVarIntervalRef.hpp"
-#include "MiniGCP/state/DomainChange.hpp"
+#include "MiniGCP/state/IntInterval.hpp"
 #include "utils.hpp"
 
 using namespace std;
 using namespace cp;
 
 
-TEST_CASE("IntVarIntervalRef allocation size", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval allocation size", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.min() == 0);
     REQUIRE(v.max() == 9);
@@ -23,19 +18,32 @@ TEST_CASE("IntVarIntervalRef allocation size", "[IntVarIntervalRef][host]") {
     REQUIRE_FALSE(v.value());
 }
 
-TEST_CASE("IntVarIntervalRef allocation min max", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval allocation min max", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(5, 10)];
+    HostIntInterval& v = IntInterval(allocator, 5, 10)[allocator];
 
     REQUIRE(v.min() == 5);
     REQUIRE(v.max() == 10);
     REQUIRE(v.size() == 6);
 }
 
-
-TEST_CASE("IntVarIntervalRef fix simple", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval allocation array", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    IntIntervalArray arr(allocator, 10, 10);
+
+    for (int i = 0; i < 10; i++) {
+        HostIntInterval& v = arr[i][allocator];
+        REQUIRE(v.min() == 0);
+        REQUIRE(v.max() == 9);
+        REQUIRE(v.size() == 10);
+        REQUIRE_FALSE(v.value());
+    }
+}
+
+
+TEST_CASE("IntInterval fix simple", "[IntInterval][host]") {
+    Allocator allocator;
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.fix(5) == DomainChange::changed);
     REQUIRE(v.min() == 5);
@@ -44,25 +52,25 @@ TEST_CASE("IntVarIntervalRef fix simple", "[IntVarIntervalRef][host]") {
     REQUIRE(v.value() == 5);
 }
 
-TEST_CASE("IntVarIntervalRef fix already fixed", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval fix already fixed", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(1)];
+    HostIntInterval& v = IntInterval(allocator, 1)[allocator];
 
     REQUIRE(v.fix(0) == DomainChange::none);
     REQUIRE(v.value() == 0);
 }
 
-TEST_CASE("IntVarIntervalRef fix outside bounds", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval fix outside bounds", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.fix(15) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("IntVarIntervalRef removeBelow simple", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval removeBelow simple", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.removeBelow(5) == DomainChange::changed);
     REQUIRE(v.min() == 5);
@@ -70,9 +78,9 @@ TEST_CASE("IntVarIntervalRef removeBelow simple", "[IntVarIntervalRef][host]") {
     REQUIRE(v.size() == 5);
 }
 
-TEST_CASE("IntVarIntervalRef removeBelow below min", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval removeBelow below min", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.removeBelow(0) == DomainChange::none);
     REQUIRE(v.removeBelow(-5) == DomainChange::none);
@@ -81,17 +89,17 @@ TEST_CASE("IntVarIntervalRef removeBelow below min", "[IntVarIntervalRef][host]"
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("IntVarIntervalRef removeBelow above max", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval removeBelow above max", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.removeBelow(15) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("IntVarIntervalRef removeAbove simple", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval removeAbove simple", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.removeAbove(5) == DomainChange::changed);
     REQUIRE(v.min() == 0);
@@ -99,9 +107,9 @@ TEST_CASE("IntVarIntervalRef removeAbove simple", "[IntVarIntervalRef][host]") {
     REQUIRE(v.size() == 6);
 }
 
-TEST_CASE("IntVarIntervalRef removeAbove above max", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval removeAbove above max", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.removeAbove(9) == DomainChange::none);
     REQUIRE(v.removeAbove(15) == DomainChange::none);
@@ -110,21 +118,21 @@ TEST_CASE("IntVarIntervalRef removeAbove above max", "[IntVarIntervalRef][host]"
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("IntVarIntervalRef removeAbove below min", "[IntVarIntervalRef][host]") {
+TEST_CASE("IntInterval removeAbove below min", "[IntInterval][host]") {
     Allocator allocator;
-    IntVarIntervalRef v = allocator[allocator.intVarInterval(10)];
+    HostIntInterval& v = IntInterval(allocator, 10)[allocator];
 
     REQUIRE(v.removeAbove(-5) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("AtomicIntVarIntervalRef fix simple", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval fix simple", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(10);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 10);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.fix(5);
     })[0];
 
@@ -135,13 +143,13 @@ TEST_CASE("AtomicIntVarIntervalRef fix simple", "[AtomicIntVarIntervalRef]") {
     REQUIRE(v.value() == 5);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef fix already fixed", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval fix already fixed", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(1);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 1);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.fix(0);
     })[0];
 
@@ -149,12 +157,12 @@ TEST_CASE("AtomicIntVarIntervalRef fix already fixed", "[AtomicIntVarIntervalRef
     REQUIRE(v.value() == 0);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef fix outside bounds", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval fix outside bounds", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(10);
+    IntInterval idx(allocator, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.fix(15);
     })[0];
 
@@ -162,13 +170,13 @@ TEST_CASE("AtomicIntVarIntervalRef fix outside bounds", "[AtomicIntVarIntervalRe
 }
 
 
-TEST_CASE("AtomicIntVarIntervalRef removeBelow simple", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval removeBelow simple", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(10);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 10);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeBelow(5);
     })[0];
 
@@ -178,13 +186,13 @@ TEST_CASE("AtomicIntVarIntervalRef removeBelow simple", "[AtomicIntVarIntervalRe
     REQUIRE(v.size() == 5);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef removeBelow below min", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval removeBelow below min", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(10);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 10);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeBelow(0) | v.removeBelow(-5);
     })[0];
 
@@ -194,12 +202,12 @@ TEST_CASE("AtomicIntVarIntervalRef removeBelow below min", "[AtomicIntVarInterva
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef removeBelow above max", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval removeBelow above max", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(10);
+    IntInterval idx(allocator, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeBelow(15);
     })[0];
 
@@ -207,13 +215,13 @@ TEST_CASE("AtomicIntVarIntervalRef removeBelow above max", "[AtomicIntVarInterva
 }
 
 
-TEST_CASE("AtomicIntVarIntervalRef removeAbove simple", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval removeAbove simple", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(10);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 10);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeAbove(5);
     })[0];
 
@@ -223,13 +231,13 @@ TEST_CASE("AtomicIntVarIntervalRef removeAbove simple", "[AtomicIntVarIntervalRe
     REQUIRE(v.size() == 6);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef removeAbove above max", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval removeAbove above max", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(10);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 10);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeAbove(9) | v.removeAbove(15);
     })[0];
 
@@ -239,12 +247,12 @@ TEST_CASE("AtomicIntVarIntervalRef removeAbove above max", "[AtomicIntVarInterva
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef removeAbove below min", "[AtomicIntVarIntervalRef]") {
+TEST_CASE("AtomicIntInterval removeAbove below min", "[AtomicIntInterval]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(10);
+    IntInterval idx(allocator, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeAbove(-5);
     })[0];
 
@@ -252,13 +260,13 @@ TEST_CASE("AtomicIntVarIntervalRef removeAbove below min", "[AtomicIntVarInterva
 }
 
 
-TEST_CASE("AtomicIntVarIntervalRef concurrent fix same", "[AtomicIntVarIntervalRef][concurrent]") {
+TEST_CASE("AtomicIntInterval concurrent fix same", "[AtomicIntInterval][concurrent]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(80);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 80);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.fix(5);
     }));
 
@@ -269,25 +277,25 @@ TEST_CASE("AtomicIntVarIntervalRef concurrent fix same", "[AtomicIntVarIntervalR
     REQUIRE(v.value() == 5);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef concurrent fix different", "[AtomicIntVarIntervalRef][concurrent]") {
+TEST_CASE("AtomicIntInterval concurrent fix different", "[AtomicIntInterval][concurrent]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(80);
+    IntInterval idx(allocator, 80);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.fix(ctx.item.get_global_id(0));
     }));
 
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef concurrent removeBelow", "[AtomicIntVarIntervalRef][concurrent]") {
+TEST_CASE("AtomicIntInterval concurrent removeBelow", "[AtomicIntInterval][concurrent]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(80);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 80);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeBelow(ctx.item.get_global_id(0) + 5);
     }));
 
@@ -297,25 +305,25 @@ TEST_CASE("AtomicIntVarIntervalRef concurrent removeBelow", "[AtomicIntVarInterv
     REQUIRE(v.size() == 12);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef concurrent removeBelow all", "[AtomicIntVarIntervalRef][concurrent]") {
+TEST_CASE("AtomicIntInterval concurrent removeBelow all", "[AtomicIntInterval][concurrent]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(63);
+    IntInterval idx(allocator, 64);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeBelow(ctx.item.get_global_id(0) + 5);
     }));
 
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef concurrent removeAbove", "[AtomicIntVarIntervalRef][concurrent]") {
+TEST_CASE("AtomicIntInterval concurrent removeAbove", "[AtomicIntInterval][concurrent]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(80);
-    IntVarIntervalRef v = allocator[idx];
+    IntInterval idx(allocator, 80);
+    HostIntInterval& v = idx[allocator];
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
+        DeviceIntInterval& v = idx[ctx];
         return v.removeAbove(ctx.item.get_global_id(0) + 5);
     }));
 
@@ -325,13 +333,13 @@ TEST_CASE("AtomicIntVarIntervalRef concurrent removeAbove", "[AtomicIntVarInterv
     REQUIRE(v.size() == 6);
 }
 
-TEST_CASE("AtomicIntVarIntervalRef concurrent removeAbove all", "[AtomicIntVarIntervalRef][concurrent]") {
+TEST_CASE("AtomicIntInterval concurrent removeAbove all", "[AtomicIntInterval][concurrent]") {
     Allocator allocator;
-    IntVarIntervalIdx idx = allocator.intVarInterval(6, 80);
+    IntInterval idx(allocator, 64);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        AtomicIntVarIntervalRef v = ctx[idx];
-        return v.removeAbove(ctx.item.get_global_id(0) + 5);
+        DeviceIntInterval& v = idx[ctx];
+        return v.removeAbove(ctx.item.get_global_id(0) - 5);
     }));
 
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
