@@ -51,7 +51,7 @@ namespace cp {
      * @brief Minimization problem objective
      * @tparam T Objective variable type
      */
-    template<IntVarInterval T>
+    template<IntVar T>
     class Minimization {
     public:
         Minimization(T x) : x(x) {}
@@ -73,7 +73,7 @@ namespace cp {
      * @brief Maximization problem objective
      * @tparam T Objective variable type
      */
-    template<IntVarInterval T>
+    template<IntVar T>
     class Maximization {
     public:
         Maximization(T x) : x(x) {}

@@ -12,10 +12,10 @@
 namespace cp {
 
     /**
-     * @brief Integer variable that supports interval operations
+     * @brief Reference to an integer variable
      */
     template<typename T>
-    concept IntVarIntervalRef = requires(T var, int32_t v) {
+    concept IntVarRef = requires(T var, int32_t v) {
         /**
          * @brief Get the minimum value in the domain
          */
@@ -35,6 +35,19 @@ namespace cp {
          * @brief Check if the domain contains a single value and, if so, return it
          */
         { var.value() } -> std::same_as<std::optional<int32_t>>;
+
+        /**
+         * @brief Whether the domain contains a value
+         * @param v The value
+         */
+        { var.contains(v) } -> std::same_as<bool>;
+
+        /**
+         * @brief Remove a value from the domain
+         * @param v The value
+         * @return Whether the domain was modified
+         */
+        { var.remove(v) } -> std::same_as<DomainChange>;
 
         /**
          * @brief Fix the domain to a single value
@@ -58,43 +71,11 @@ namespace cp {
         { var.removeAbove(v) } -> std::same_as<DomainChange>;
     };
 
-    /**
-     * @brief Integer variable
-     */
-    template<typename T>
-    concept IntVarRef = IntVarIntervalRef<T> && requires(T var, int32_t v) {
-        /**
-         * @brief Whether the domain contains a value
-         * @param v The value
-         */
-        { var.contains(v) } -> std::same_as<bool>;
-
-        /**
-         * @brief Remove a value from the domain
-         * @param v The value
-         * @return Whether the domain was modified
-         */
-        { var.remove(v) } -> std::same_as<DomainChange>;
-    };
-
-
-    template<typename T>
-    concept IntVarInterval = sycl::is_device_copyable_v<T> && requires(T const& var, Context ctx, Allocator& allocator) {
-        { var[ctx] } -> IntVarIntervalRef;
-        { var[allocator] } -> IntVarIntervalRef;
-    };
 
     template<typename T>
     concept IntVar = sycl::is_device_copyable_v<T> && requires(T const& var, Context ctx, Allocator& allocator) {
         { var[ctx] } -> IntVarRef;
         { var[allocator] } -> IntVarRef;
-    };
-
-    template<typename T>
-    concept IntVarIntervalArray = sycl::is_device_copyable_v<T> && requires(T const& arr, Context ctx, Allocator& allocator, uint32_t i) {
-        { auto(arr[ctx, i]) } -> IntVarInterval;
-        { auto(arr[allocator, i]) } -> IntVarInterval;
-        { arr.size() } -> std::same_as<uint32_t>;
     };
 
     template<typename T>
@@ -104,7 +85,7 @@ namespace cp {
         { arr.size() } -> std::same_as<uint32_t>;
     };
 
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     using IntVarIn = std::remove_reference_t<decltype(std::declval<T>()[std::declval<Context>(), 0])>;
 
 }

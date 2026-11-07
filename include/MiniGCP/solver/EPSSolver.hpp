@@ -8,7 +8,7 @@ namespace cp {
     /**
      * @brief Embarrassingly parallel search solver
      */
-    template<Objective Objective, IntVarIntervalArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    template<Objective Objective, IntVarArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class EPSSolver : public Solver<Objective, Output, Strategy, DeviceParams, Constraints...> {
     public:
         EPSSolver(Model<Constraints...> model, Strategy strategy, DeviceParams params, uint32_t epsDepth) :

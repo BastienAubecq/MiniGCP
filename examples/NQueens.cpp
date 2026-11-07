@@ -44,13 +44,14 @@ static auto getNQueensSolver(uint32_t n, IsDeviceParams auto params) {
  */
 static auto getNQueensBinarySolver(uint32_t n, IsDeviceParams auto params) {
     Model<
+        NotEqual<IntBitset, IntBitset>,
         NotEqual<Add<IntBitset>, Add<IntBitset>>
     > model;
 
     IntBitsetArray variables(model, n, n);
     for (uint32_t i = 0; i < n; i++) {
         for (uint32_t j = 0; j < i; j++) {
-            model.constraint(variables[i] + 0 != variables[j] + 0);
+            model.constraint(variables[i] != variables[j]);
             model.constraint(variables[i] + i != variables[j] + j);
             model.constraint(variables[i] - i != variables[j] - j);
         }

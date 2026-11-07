@@ -8,7 +8,7 @@ using namespace std;
 using namespace cp;
 
 
-TEST_CASE("IntBitset allocation size simple", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset allocation size simple", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -21,7 +21,7 @@ TEST_CASE("IntBitset allocation size simple", "[IntBitset][host]") {
     REQUIRE_FALSE(v.contains(10));
 }
 
-TEST_CASE("IntBitset allocation size multiple words", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset allocation size multiple words", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 70)[allocator];
 
@@ -33,7 +33,7 @@ TEST_CASE("IntBitset allocation size multiple words", "[IntBitset][host]") {
     REQUIRE_FALSE(v.contains(70));
 }
 
-TEST_CASE("IntBitset allocation values", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset allocation values", "[HostIntBitset][host]") {
     vector<int32_t> values{ 0, 1, 4, 7, 8, 9, 15, 45 };
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, values)[allocator];
@@ -48,7 +48,7 @@ TEST_CASE("IntBitset allocation values", "[IntBitset][host]") {
     REQUIRE_FALSE(v.contains(46));
 }
 
-TEST_CASE("IntBitset allocation array", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset allocation array", "[HostIntBitset][host]") {
     Allocator allocator;
     IntBitsetArray arr(allocator, 10, 10);
 
@@ -65,7 +65,7 @@ TEST_CASE("IntBitset allocation array", "[IntBitset][host]") {
 }
 
 
-TEST_CASE("IntBitset remove simple", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset remove simple", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -76,7 +76,7 @@ TEST_CASE("IntBitset remove simple", "[IntBitset][host]") {
     for (int i = 6; i < 10; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("IntBitset remove outside bounds", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset remove outside bounds", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -85,7 +85,7 @@ TEST_CASE("IntBitset remove outside bounds", "[IntBitset][host]") {
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("IntBitset remove already removed", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset remove already removed", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
     v.remove(5);
@@ -94,7 +94,7 @@ TEST_CASE("IntBitset remove already removed", "[IntBitset][host]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("IntBitset remove min", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset remove min", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -104,7 +104,7 @@ TEST_CASE("IntBitset remove min", "[IntBitset][host]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("IntBitset remove max", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset remove max", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -114,15 +114,15 @@ TEST_CASE("IntBitset remove max", "[IntBitset][host]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("IntBitset remove last", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset remove last", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 1)[allocator];
 
-    REQUIRE(v.remove(0) == DomainChange::inconsistency);
+    REQUIRE((v.remove(0) & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("IntBitset fix simple", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset fix simple", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -136,7 +136,7 @@ TEST_CASE("IntBitset fix simple", "[IntBitset][host]") {
     for (int i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
 }
 
-TEST_CASE("IntBitset fix already fixed", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset fix already fixed", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 1)[allocator];
 
@@ -144,23 +144,23 @@ TEST_CASE("IntBitset fix already fixed", "[IntBitset][host]") {
     REQUIRE(v.value() == 0);
 }
 
-TEST_CASE("IntBitset fix outside bounds", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset fix outside bounds", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
-    REQUIRE(v.fix(15) == DomainChange::inconsistency);
+    REQUIRE((v.fix(15) & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("IntBitset fix removed", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset fix removed", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
     v.remove(5);
 
-    REQUIRE(v.fix(5) == DomainChange::inconsistency);
+    REQUIRE((v.fix(5) & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("IntBitset removeBelow simple", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset removeBelow simple", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -172,7 +172,7 @@ TEST_CASE("IntBitset removeBelow simple", "[IntBitset][host]") {
     for (int i = 5; i < 10; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("IntBitset removeBelow below min", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset removeBelow below min", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -183,15 +183,15 @@ TEST_CASE("IntBitset removeBelow below min", "[IntBitset][host]") {
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("IntBitset removeBelow above max", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset removeBelow above max", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
-    REQUIRE(v.removeBelow(15) == DomainChange::inconsistency);
+    REQUIRE((v.removeBelow(15) & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("IntBitset removeAbove simple", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset removeAbove simple", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -203,7 +203,7 @@ TEST_CASE("IntBitset removeAbove simple", "[IntBitset][host]") {
     for (int i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
 }
 
-TEST_CASE("IntBitset removeAbove above max", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset removeAbove above max", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
@@ -214,22 +214,21 @@ TEST_CASE("IntBitset removeAbove above max", "[IntBitset][host]") {
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("IntBitset removeAbove below min", "[IntBitset][host]") {
+TEST_CASE("HostIntBitset removeAbove below min", "[HostIntBitset][host]") {
     Allocator allocator;
     HostIntBitsetRef v = IntBitset(allocator, 10)[allocator];
 
-    REQUIRE(v.removeAbove(-5) == DomainChange::inconsistency);
+    REQUIRE((v.removeAbove(-5) & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("AtomicIntBitset remove simple", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset remove simple", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.remove(5);
+        return idx[ctx].remove(5);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
@@ -239,43 +238,40 @@ TEST_CASE("AtomicIntBitset remove simple", "[AtomicIntBitset]") {
     for (int i = 6; i < 10; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntBitset remove outside bounds", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset remove outside bounds", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.remove(-1) | v.remove(10);
+        return idx[ctx].remove(-1) | idx[ctx].remove(10);
     })[0];
 
     REQUIRE(c == DomainChange::none);
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("AtomicIntBitset remove already removed", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset remove already removed", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
     v.remove(5);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.remove(5);
+        return idx[ctx].remove(5);
     })[0];
 
     REQUIRE(c == DomainChange::none);
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("AtomicIntBitset remove min", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset remove min", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.remove(0);
+        return idx[ctx].remove(0);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
@@ -284,14 +280,13 @@ TEST_CASE("AtomicIntBitset remove min", "[AtomicIntBitset]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("AtomicIntBitset remove max", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset remove max", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.remove(9);
+        return idx[ctx].remove(9);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
@@ -300,27 +295,25 @@ TEST_CASE("AtomicIntBitset remove max", "[AtomicIntBitset]") {
     REQUIRE(v.size() == 9);
 }
 
-TEST_CASE("AtomicIntBitset remove last", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset remove last", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 1);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.remove(0);
+        return idx[ctx].remove(0);
     })[0];
 
-    REQUIRE(c == DomainChange::inconsistency);
+    REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("AtomicIntBitset fix simple", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset fix simple", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.fix(5);
+        return idx[ctx].fix(5);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
@@ -333,55 +326,51 @@ TEST_CASE("AtomicIntBitset fix simple", "[AtomicIntBitset]") {
     for (int i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntBitset fix already fixed", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset fix already fixed", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 1);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.fix(0);
+        return idx[ctx].fix(0);
     })[0];
 
     REQUIRE(c == DomainChange::none);
     REQUIRE(v.value() == 0);
 }
 
-TEST_CASE("AtomicIntBitset fix outside bounds", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset fix outside bounds", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.fix(15);
+        return idx[ctx].fix(15);
     })[0];
 
-    REQUIRE(c == DomainChange::inconsistency);
+    REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntBitset fix removed", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset fix removed", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
     v.remove(5);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.fix(5);
+        return idx[ctx].fix(5);
     })[0];
 
-    REQUIRE(c == DomainChange::inconsistency);
+    REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("AtomicIntBitset removeBelow simple", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset removeBelow simple", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeBelow(5);
+        return idx[ctx].removeBelow(5);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
@@ -392,14 +381,13 @@ TEST_CASE("AtomicIntBitset removeBelow simple", "[AtomicIntBitset]") {
     for (int i = 5; i < 10; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntBitset removeBelow below min", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset removeBelow below min", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeBelow(0) | v.removeBelow(-5);
+        return idx[ctx].removeBelow(0) | idx[ctx].removeBelow(-5);
     })[0];
 
     REQUIRE(c == DomainChange::none);
@@ -408,27 +396,25 @@ TEST_CASE("AtomicIntBitset removeBelow below min", "[AtomicIntBitset]") {
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("AtomicIntBitset removeBelow above max", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset removeBelow above max", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeBelow(15);
+        return idx[ctx].removeBelow(15);
     })[0];
 
-    REQUIRE(c == DomainChange::inconsistency);
+    REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("AtomicIntBitset removeAbove simple", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset removeAbove simple", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeAbove(5);
+        return idx[ctx].removeAbove(5);
     })[0];
 
     REQUIRE(c == DomainChange::changed);
@@ -439,14 +425,13 @@ TEST_CASE("AtomicIntBitset removeAbove simple", "[AtomicIntBitset]") {
     for (int i = 6; i < 10; i++) REQUIRE_FALSE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntBitset removeAbove above max", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset removeAbove above max", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeAbove(9) | v.removeAbove(15);
+        return idx[ctx].removeAbove(9) | idx[ctx].removeAbove(15);
     })[0];
 
     REQUIRE(c == DomainChange::none);
@@ -455,27 +440,25 @@ TEST_CASE("AtomicIntBitset removeAbove above max", "[AtomicIntBitset]") {
     REQUIRE(v.size() == 10);
 }
 
-TEST_CASE("AtomicIntBitset removeAbove below min", "[AtomicIntBitset]") {
+TEST_CASE("DeviceIntBitset removeAbove below min", "[DeviceIntBitset]") {
     Allocator allocator;
     IntBitset idx(allocator, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeAbove(-5);
+        return idx[ctx].removeAbove(-5);
     })[0];
 
-    REQUIRE(c == DomainChange::inconsistency);
+    REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
 
-TEST_CASE("AtomicIntBitset concurrent remove", "[AtomicIntBitset][concurrent]") {
+TEST_CASE("DeviceIntBitset concurrent remove", "[DeviceIntBitset][concurrent]") {
     Allocator allocator;
     IntBitset idx(allocator, 80);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.remove(ctx.item.get_global_id(0));
+        return idx[ctx].remove(ctx.item.get_global_id(0));
     }));
 
     REQUIRE(c == DomainChange::changed);
@@ -486,26 +469,24 @@ TEST_CASE("AtomicIntBitset concurrent remove", "[AtomicIntBitset][concurrent]") 
     for (int i = 64; i < 80; i++) REQUIRE(v.contains(i));
 }
 
-TEST_CASE("AtomicIntBitset concurrent remove all", "[AtomicIntBitset][concurrent]") {
+TEST_CASE("DeviceIntBitset concurrent remove all", "[DeviceIntBitset][concurrent]") {
     Allocator allocator;
     IntBitset idx(allocator, 64);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.remove(ctx.item.get_global_id(0));
+        return idx[ctx].remove(ctx.item.get_global_id(0));
     }));
 
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntBitset concurrent fix same", "[AtomicIntBitset][concurrent]") {
+TEST_CASE("DeviceIntBitset concurrent fix same", "[DeviceIntBitset][concurrent]") {
     Allocator allocator;
     IntBitset idx(allocator, 80);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.fix(5);
+        return idx[ctx].fix(5);
     }));
 
     REQUIRE(c == DomainChange::changed);
@@ -515,26 +496,24 @@ TEST_CASE("AtomicIntBitset concurrent fix same", "[AtomicIntBitset][concurrent]"
     REQUIRE(v.value() == 5);
 }
 
-TEST_CASE("AtomicIntBitset concurrent fix different", "[AtomicIntBitset][concurrent]") {
+TEST_CASE("DeviceIntBitset concurrent fix different", "[DeviceIntBitset][concurrent]") {
     Allocator allocator;
     IntBitset idx(allocator, 80);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.fix(ctx.item.get_global_id(0));
+        return idx[ctx].fix(ctx.item.get_global_id(0));
     }));
 
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntBitset concurrent removeBelow", "[AtomicIntBitset][concurrent]") {
+TEST_CASE("DeviceIntBitset concurrent removeBelow", "[DeviceIntBitset][concurrent]") {
     Allocator allocator;
     IntBitset idx(allocator, 80);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeBelow(ctx.item.get_global_id(0) + 5);
+        return idx[ctx].removeBelow(ctx.item.get_global_id(0) + 5);
     }));
 
     REQUIRE(c == DomainChange::changed);
@@ -543,26 +522,24 @@ TEST_CASE("AtomicIntBitset concurrent removeBelow", "[AtomicIntBitset][concurren
     REQUIRE(v.size() == 12);
 }
 
-TEST_CASE("AtomicIntBitset concurrent removeBelow all", "[AtomicIntBitset][concurrent]") {
+TEST_CASE("DeviceIntBitset concurrent removeBelow all", "[DeviceIntBitset][concurrent]") {
     Allocator allocator;
     IntBitset idx(allocator, 64);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeBelow(ctx.item.get_global_id(0) + 5);
+        return idx[ctx].removeBelow(ctx.item.get_global_id(0) + 5);
     }));
 
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);
 }
 
-TEST_CASE("AtomicIntBitset concurrent removeAbove", "[AtomicIntBitset][concurrent]") {
+TEST_CASE("DeviceIntBitset concurrent removeAbove", "[DeviceIntBitset][concurrent]") {
     Allocator allocator;
     IntBitset idx(allocator, 80);
     HostIntBitsetRef v = idx[allocator];
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeAbove(ctx.item.get_global_id(0) + 5);
+        return idx[ctx].removeAbove(ctx.item.get_global_id(0) + 5);
     }));
 
     REQUIRE(c == DomainChange::changed);
@@ -571,13 +548,12 @@ TEST_CASE("AtomicIntBitset concurrent removeAbove", "[AtomicIntBitset][concurren
     REQUIRE(v.size() == 6);
 }
 
-TEST_CASE("AtomicIntBitset concurrent removeAbove all", "[AtomicIntBitset][concurrent]") {
+TEST_CASE("DeviceIntBitset concurrent removeAbove all", "[DeviceIntBitset][concurrent]") {
     Allocator allocator;
     IntBitset idx(allocator, 64);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 64, [=](Context ctx) {
-        DeviceIntBitsetRef v = idx[ctx];
-        return v.removeAbove(ctx.item.get_global_id(0) - 5);
+        return idx[ctx].removeAbove(ctx.item.get_global_id(0) - 5);
     }));
 
     REQUIRE((c & DomainChange::inconsistency) == DomainChange::inconsistency);

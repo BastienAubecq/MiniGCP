@@ -16,7 +16,7 @@ namespace cp {
      * @tparam Y Type of y
      * @tparam Z Type of z
      */
-    template<IntVar Y, IntVarInterval Z>
+    template<IntVar Y, IntVar Z>
     class Element1D {
     public:
         constexpr static bool parallel = false;

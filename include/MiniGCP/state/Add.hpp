@@ -9,7 +9,7 @@
 
 namespace cp {
 
-    template<IntVarIntervalRef T>
+    template<IntVarRef T>
     class AddRef {
     public:
         AddRef(T x, int32_t y) : x(x), y(y) {}
@@ -32,11 +32,11 @@ namespace cp {
             return {};
         }
 
-        bool contains(int32_t v) const requires IntVarRef<T> {
+        bool contains(int32_t v) const {
             return x.contains(v - y);
         }
 
-        DomainChange remove(int32_t v) const requires IntVarRef<T> {
+        DomainChange remove(int32_t v) const {
             return x.remove(v - y);
         }
 
@@ -62,7 +62,7 @@ namespace cp {
      * @brief Add a constant to an integer variable
      * @tparam T Underlying variable type
      */
-    template<IntVarInterval T>
+    template<IntVar T>
     class Add {
     public:
         Add(T x, int32_t y) : x(x), y(y) {}
@@ -89,22 +89,22 @@ namespace cp {
         int32_t y;
     };
 
-    template<IntVarInterval T>
+    template<IntVar T>
     inline Add<T> operator+(Add<T> x, int32_t y) {
         return x += y;
     }
 
-    template<IntVarInterval T>
+    template<IntVar T>
     inline Add<T> operator+(T x, int32_t y) {
         return Add<T>(x, y);
     }
 
-    template<IntVarInterval T>
+    template<IntVar T>
     inline auto operator+(int32_t x, T y) {
         return y + x;
     }
 
-    template<IntVarInterval T>
+    template<IntVar T>
     inline auto operator-(T x, int32_t y) {
         return x + -y;
     }
@@ -114,7 +114,7 @@ namespace cp {
      * @brief Add the same constant to each variable in an integer variable array
      * @tparam T Underlying variable array type
      */
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     class Add1 {
     public:
         Add1(T x, int32_t y) : x(x), y(y) {}
@@ -145,22 +145,22 @@ namespace cp {
         int32_t y;
     };
 
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     inline Add1<T> operator+(Add1<T> x, int32_t y) {
         return x += y;
     }
 
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     inline Add1<T> operator+(T x, int32_t y) {
         return Add1(x, y);
     }
 
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     inline auto operator+(int32_t x, T y) {
         return y + x;
     }
 
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     inline auto operator-(T x, int32_t y) {
         return x + -y;
     }
@@ -170,7 +170,7 @@ namespace cp {
      * @brief Add a different constant to each variable in an integer variable array
      * @tparam T Underlying variable array type
      */
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     class AddN {
     public:
         AddN(T x, Array<int32_t> y) : x(x), y(y) {}
@@ -192,12 +192,12 @@ namespace cp {
         Array<int32_t> y;
     };
 
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     inline AddN<T> operator+(T x, Array<int32_t> y) {
         return AddN(x, y);
     }
 
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     inline auto operator+(Array<int32_t> x, T y) {
         return y + x;
     }

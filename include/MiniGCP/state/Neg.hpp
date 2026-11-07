@@ -9,7 +9,7 @@
 
 namespace cp {
 
-    template<IntVarIntervalRef T>
+    template<IntVarRef T>
     class NegRef {
     public:
         explicit NegRef(T x) : x(x) {}
@@ -30,11 +30,11 @@ namespace cp {
             return x.value().transform(std::negate<int32_t>());
         }
 
-        bool contains(int32_t v) const requires IntVarRef<T> {
+        bool contains(int32_t v) const {
             return x.contains(-v);
         }
 
-        DomainChange remove(int32_t v) const requires IntVarRef<T> {
+        DomainChange remove(int32_t v) const {
             return x.remove(-v);
         }
 
@@ -59,7 +59,7 @@ namespace cp {
      * @brief Negate an integer variable
      * @tparam T Underlying variable type
      */
-    template<IntVarInterval T>
+    template<IntVar T>
     class Neg {
     public:
         explicit Neg(T x) : x(x) {}
@@ -80,7 +80,7 @@ namespace cp {
         T x;
     };
 
-    template<IntVarInterval T>
+    template<IntVar T>
     inline Neg<T> operator-(T x) {
         return Neg(x);
     }
@@ -90,7 +90,7 @@ namespace cp {
      * @brief Negate an integer variable array
      * @tparam T Underlying variable array type
      */
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     class Neg1 {
     public:
         explicit Neg1(T x) : x(x) {}
@@ -115,7 +115,7 @@ namespace cp {
         T x;
     };
 
-    template<IntVarIntervalArray T>
+    template<IntVarArray T>
     inline Neg1<T> operator-(T x) {
         return Neg1(x);
     }

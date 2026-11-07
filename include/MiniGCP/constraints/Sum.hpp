@@ -19,7 +19,7 @@ namespace cp {
      * @tparam X Type of x
      * @tparam Y Type of y
      */
-    template<IntVarIntervalArray X, IntVarInterval Y>
+    template<IntVarArray X, IntVar Y>
     class SumSeq {
     public:
         constexpr static bool parallel = false;
@@ -94,7 +94,7 @@ namespace cp {
      * @tparam X Type of x
      * @tparam Y Type of y
      */
-    template<IntVarIntervalArray X, IntVarInterval Y>
+    template<IntVarArray X, IntVar Y>
     class Sum {
     public:
         constexpr static bool parallel = true;
@@ -190,7 +190,7 @@ namespace cp {
      * @param x Variables
      * @return Sum of the variables
      */
-    template<Constraint... Constraints, IntVarIntervalArray X>
+    template<Constraint... Constraints, IntVarArray X>
     inline IntInterval sum(Model<Constraints...>& model, X x) {
         IntInterval y(model);
         model.constraint(Sum(model, x, y));

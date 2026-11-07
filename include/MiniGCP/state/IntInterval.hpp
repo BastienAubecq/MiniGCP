@@ -36,6 +36,16 @@ namespace cp {
             return {};
         }
 
+        bool contains(int32_t v) const {
+            return v >= min() && v <= max();
+        }
+
+        DomainChange remove(int32_t v) {
+            if (v == min()) return removeBelow(min() + 1);
+            if (v == max()) return removeAbove(max() - 1);
+            return DomainChange::none;
+        }
+
         DomainChange fix(int32_t v) {
             if (v < min() || v > max()) return DomainChange::inconsistency;
             if (value()) return DomainChange::none;
@@ -88,6 +98,16 @@ namespace cp {
             return {};
         }
 
+        bool contains(int32_t v) const {
+            return v >= max() && v <= min();
+        }
+
+        DomainChange remove(int32_t v) {
+            if (v == min()) return removeBelow(min() + 1);
+            if (v == max()) return removeAbove(max() - 1);
+            return DomainChange::none;
+        }
+
         DomainChange fix(int32_t v) {
             int32_t oldMin = atomic(a).fetch_max(v);
             int32_t oldMax = atomic(b).fetch_min(v);
@@ -115,8 +135,6 @@ namespace cp {
     };
 
 
-    class IntIntervalArray;
-
     /**
      * @brief Integer variable represented with an interval
      */
@@ -131,7 +149,11 @@ namespace cp {
          * @param max Maximum value in the domain
          * @return The variable
          */
-        IntInterval(Allocator& allocator, int32_t min, int32_t max);
+        IntInterval(Allocator& allocator, int32_t min, int32_t max) {
+            if (max < min) throw std::invalid_argument("max must be greater than or equal to min");
+            index = allocator.allocate<HostIntInterval, Scope::state>(1);
+            *allocator.getData<HostIntInterval, Scope::state>(index) = HostIntInterval(min, max);
+        }
         
         /**
          * @brief Allocate an integer variable with an interval domain starting at 0
@@ -147,7 +169,7 @@ namespace cp {
          * @param allocator CP model allocator
          * @return The variable
          */
-        IntInterval(Allocator& allocator) :
+        explicit IntInterval(Allocator& allocator) :
             IntInterval(allocator, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max()) {}
 
         DeviceIntInterval& operator[](Context ctx) const {
@@ -224,9 +246,6 @@ namespace cp {
         uint32_t index;
         uint32_t count;
     };
-
-    inline IntInterval::IntInterval(Allocator& allocator, int32_t min, int32_t max) :
-        index(IntIntervalArray(allocator, min, max, 1)[0].index) {}
 
 }
 

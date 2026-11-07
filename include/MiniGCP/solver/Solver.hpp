@@ -22,7 +22,7 @@ namespace cp {
     /**
      * @brief Device-side solver
      */
-    template<Objective Objective, IntVarIntervalArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    template<Objective Objective, IntVarArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class DeviceSolver {
     public:
         Objective objective;
@@ -134,7 +134,7 @@ namespace cp {
     /**
      * @brief CP solver base class
      */
-    template<Objective Objective, IntVarIntervalArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    template<Objective Objective, IntVarArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class Solver {
     public:
         Solver(Model<Constraints...> model, Objective objective, Output output, Strategy strategy, DeviceParams params) :
