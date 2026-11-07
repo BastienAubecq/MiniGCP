@@ -1,6 +1,7 @@
 #ifndef MINIGCP_ADD
 #define MINIGCP_ADD
 
+#include <concepts>
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/Array.hpp"
@@ -9,10 +10,10 @@
 
 namespace cp {
 
-    template<IntVarRef T>
+    template<IntVarRef V, std::convertible_to<int32_t> C>
     class AddRef {
     public:
-        AddRef(T x, int32_t y) : x(x), y(y) {}
+        AddRef(V x, C y) : x(x), y(y) {}
 
         int32_t min() const {
             return x.min() + y;
@@ -53,19 +54,20 @@ namespace cp {
         }
 
     private:
-        T x;
-        int32_t y;
+        V x;
+        C y;
     };
 
 
     /**
      * @brief Add a constant to an integer variable
-     * @tparam T Underlying variable type
+     * @tparam V Underlying variable type
+     * @tparam C Constant type
      */
-    template<IntVar T>
+    template<IntVar V, std::convertible_to<int32_t> C = int32_t>
     class Add {
     public:
-        Add(T x, int32_t y) : x(x), y(y) {}
+        Add(V x, C y = {}) : x(x), y(y) {}
 
         auto operator[](Context ctx) const {
             return AddRef(x[ctx], y);
@@ -75,49 +77,50 @@ namespace cp {
             return AddRef(x[allocator], y);
         }
 
-        Add<T>& operator+=(int32_t z) {
+        Add<V>& operator+=(int32_t z) requires std::same_as<C, int32_t> {
             y += z;
             return *this;
         }
 
-        Add<T>& operator-=(int32_t z) {
+        Add<V>& operator-=(int32_t z) requires std::same_as<C, int32_t> {
             return *this += -y;
         }
 
     private:
-        T x;
-        int32_t y;
+        V x;
+        C y;
     };
 
-    template<IntVar T>
-    inline Add<T> operator+(Add<T> x, int32_t y) {
+    template<IntVar V>
+    inline Add<V> operator+(Add<V> x, int32_t y) {
         return x += y;
     }
 
-    template<IntVar T>
-    inline Add<T> operator+(T x, int32_t y) {
-        return Add<T>(x, y);
+    template<IntVar V>
+    inline Add<V> operator+(V x, int32_t y) {
+        return Add(x, y);
     }
 
-    template<IntVar T>
-    inline auto operator+(int32_t x, T y) {
+    template<IntVar V>
+    inline auto operator+(int32_t x, V y) {
         return y + x;
     }
 
-    template<IntVar T>
-    inline auto operator-(T x, int32_t y) {
+    template<IntVar V>
+    inline auto operator-(V x, int32_t y) {
         return x + -y;
     }
 
 
     /**
      * @brief Add the same constant to each variable in an integer variable array
-     * @tparam T Underlying variable array type
+     * @tparam V Underlying variable array type
+     * @tparam C Constant type
      */
-    template<IntVarArray T>
+    template<IntVarArray V, std::convertible_to<int32_t> C = int32_t>
     class Add1 {
     public:
-        Add1(T x, int32_t y) : x(x), y(y) {}
+        Add1(V x, C y = {}) : x(x), y(y) {}
 
         auto operator[](Context ctx, uint32_t i) const {
             return Add(x[ctx, i], y);
@@ -131,37 +134,37 @@ namespace cp {
             return x.size();
         }
 
-        Add1<T>& operator+=(int32_t z) {
+        Add1<V>& operator+=(int32_t z) requires std::same_as<C, int32_t> {
             y += z;
             return *this;
         }
 
-        Add1<T>& operator-=(int32_t z) {
+        Add1<V>& operator-=(int32_t z) requires std::same_as<C, int32_t> {
             return *this += -y;
         }
 
     private:
-        T x;
-        int32_t y;
+        V x;
+        C y;
     };
 
-    template<IntVarArray T>
-    inline Add1<T> operator+(Add1<T> x, int32_t y) {
+    template<IntVarArray V>
+    inline Add1<V> operator+(Add1<V> x, int32_t y) {
         return x += y;
     }
 
-    template<IntVarArray T>
-    inline Add1<T> operator+(T x, int32_t y) {
+    template<IntVarArray V>
+    inline Add1<V> operator+(V x, int32_t y) {
         return Add1(x, y);
     }
 
-    template<IntVarArray T>
-    inline auto operator+(int32_t x, T y) {
+    template<IntVarArray V>
+    inline auto operator+(int32_t x, V y) {
         return y + x;
     }
 
-    template<IntVarArray T>
-    inline auto operator-(T x, int32_t y) {
+    template<IntVarArray V>
+    inline auto operator-(V x, int32_t y) {
         return x + -y;
     }
 
