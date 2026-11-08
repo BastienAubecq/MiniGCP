@@ -56,18 +56,18 @@ namespace cp {
         }
 
     private:
-        [[no_unique_address]] C c;
+        C c;
     };
 
 
     /**
      * @brief Constant integer variable
-     * @tparam C Constant type
+     * @tparam C Constant type.
      */
-    template<std::convertible_to<int32_t> C = int32_t>
+    template<std::convertible_to<int32_t> C>
     class Const {
     public:
-        explicit Const(C c = {}) : c(c) {}
+        explicit Const(C c) : c(c) {}
 
         ConstRef<C> operator[](Context ctx) const {
             return ConstRef(c);
@@ -112,6 +112,10 @@ namespace cp {
     public:
         operator int32_t() {
             return c;
+        }
+
+        Lit<-c> operator-() {
+            return {};
         }
     };
 

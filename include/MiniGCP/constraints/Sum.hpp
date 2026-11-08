@@ -19,7 +19,7 @@ namespace cp {
      * @tparam X Type of x
      * @tparam Y Type of y
      */
-    template<IntVarArray X, IntVar Y>
+    template<IntVarArray X, IntVar Y> requires Sized<X>
     class SumSeq {
     public:
         constexpr static bool parallel = false;
@@ -94,7 +94,7 @@ namespace cp {
      * @tparam X Type of x
      * @tparam Y Type of y
      */
-    template<IntVarArray X, IntVar Y>
+    template<IntVarArray X, IntVar Y> requires Sized<X>
     class Sum {
     public:
         constexpr static bool parallel = true;
@@ -177,7 +177,7 @@ namespace cp {
 
     private:
         X x;
-        Y y;
+        [[no_unique_address]] Y y;
         Array<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
         Value<uint32_t, Scope::state> nFixed; // Number of unfixed variables
         Value<int32_t, Scope::state> sumFixed; // Sum of the unfixed variables
@@ -190,7 +190,7 @@ namespace cp {
      * @param x Variables
      * @return Sum of the variables
      */
-    template<Constraint... Constraints, IntVarArray X>
+    template<Constraint... Constraints, IntVarArray X> requires Sized<X>
     inline IntInterval sum(Model<Constraints...>& model, X x) {
         IntInterval y(model);
         model.constraint(Sum(model, x, y));

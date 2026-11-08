@@ -16,19 +16,14 @@ using namespace cp;
 static auto getNQueensSolver(uint32_t n, IsDeviceParams auto params) {
     Model<
         AllDifferentFWC<IntBitsetArray>,
-        AllDifferentFWC<AddN<IntBitsetArray>>,
-        AllDifferentFWC<AddN<Neg1<IntBitsetArray>>>
+        AllDifferentFWC<AddArr<IntBitsetArray, Range>>,
+        AllDifferentFWC<AddArr<NegArr<IntBitsetArray>, Range>>
     > model;
 
     IntBitsetArray variables(model, n, n);
-    vector<int32_t> indicesVec;
-    for (uint32_t i = 0; i < n; i++) {
-        indicesVec.push_back(i);
-    }
-    Array<int32_t> indices(model, indicesVec);
     model.constraint(AllDifferentFWC(model, variables));
-    model.constraint(AllDifferentFWC(model, variables + indices));
-    model.constraint(AllDifferentFWC(model, -variables + indices));
+    model.constraint(AllDifferentFWC(model, variables + Range()));
+    model.constraint(AllDifferentFWC(model, -variables + Range()));
 
     FirstFail strategy(variables);
     return DFSSolver(model, Satisfaction(), variables, strategy, params);
@@ -45,12 +40,12 @@ static auto getNQueensSolver(uint32_t n, IsDeviceParams auto params) {
 static auto getNQueensBinarySolver(uint32_t n, IsDeviceParams auto params) {
     Model<
         NotEqual<IntBitset, IntBitset>,
-        NotEqual<Add<IntBitset>, Add<IntBitset>>
+        NotEqual<Add<IntBitset, int32_t>, Add<IntBitset, int32_t>>
     > model;
 
     IntBitsetArray variables(model, n, n);
-    for (uint32_t i = 0; i < n; i++) {
-        for (uint32_t j = 0; j < i; j++) {
+    for (int32_t i = 0; i < n; i++) {
+        for (int32_t j = 0; j < i; j++) {
             model.constraint(variables[i] != variables[j]);
             model.constraint(variables[i] + i != variables[j] + j);
             model.constraint(variables[i] - i != variables[j] - j);

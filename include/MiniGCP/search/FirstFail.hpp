@@ -10,6 +10,7 @@
 #include "MiniGCP/utils.hpp"
 #include "MiniGCP/search/FixRemove.hpp"
 #include "MiniGCP/solver/Context.hpp"
+#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/IntVar.hpp"
 
 namespace cp {
@@ -21,7 +22,7 @@ namespace cp {
      * Remove that value in the right branch.
      * @tparam T Type of the variable array
      */
-    template<IntVarArray T>
+    template<IntVarArray T> requires Sized<T>
     class FirstFail {
     public:
         FirstFail(T variables) : variables(variables) {}

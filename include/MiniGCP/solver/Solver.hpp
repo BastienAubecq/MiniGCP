@@ -14,6 +14,7 @@
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/solver/DataStore.hpp"
 #include "MiniGCP/solver/DeviceParams.hpp"
+#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/IntVar.hpp"
 #include "MiniGCP/state/Objective.hpp"
 
@@ -134,7 +135,7 @@ namespace cp {
     /**
      * @brief CP solver base class
      */
-    template<Objective Objective, IntVarArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    template<Objective Objective, IntVarArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints> requires Sized<Output>
     class Solver {
     public:
         Solver(Model<Constraints...> model, Objective objective, Output output, Strategy strategy, DeviceParams params) :

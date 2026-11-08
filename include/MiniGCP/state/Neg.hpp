@@ -4,6 +4,7 @@
 #include <functional>
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
+#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
 #include "MiniGCP/state/IntVar.hpp"
 
@@ -72,12 +73,8 @@ namespace cp {
             return NegRef(x[allocator]);
         }
 
-        T operator-() {
-            return x;
-        }
-
     private:
-        T x;
+        [[no_unique_address]] T x;
     };
 
     template<IntVar T>
@@ -87,37 +84,33 @@ namespace cp {
 
 
     /**
-     * @brief Negate an integer variable array
-     * @tparam T Underlying variable array type
+     * @brief Negate an array
+     * @tparam T Type of the array
      */
-    template<IntVarArray T>
-    class Neg1 {
+    template<ContextArray T>
+    class NegArr {
     public:
-        explicit Neg1(T x) : x(x) {}
+        explicit NegArr(T x) : x(x) {}
 
         auto operator[](Context ctx, uint32_t i) const {
-            return Neg(x[ctx, i]);
+            return -x[ctx, i];
         }
 
         auto operator[](Allocator& allocator, uint32_t i) const {
-            return Neg(x[allocator, i]);
+            return -x[allocator, i];
         }
 
-        uint32_t size() const {
+        uint32_t size() const requires Sized<T> {
             return x.size();
         }
 
-        T operator-() {
-            return x;
-        }
-
     private:
-        T x;
+        [[no_unique_address]] T x;
     };
 
-    template<IntVarArray T>
-    inline Neg1<T> operator-(T x) {
-        return Neg1(x);
+    template<ContextArray T>
+    inline NegArr<T> operator-(T x) {
+        return NegArr(x);
     }
 
 }

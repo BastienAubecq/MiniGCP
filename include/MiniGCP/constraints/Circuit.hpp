@@ -16,7 +16,7 @@ namespace cp {
      * Sequential implementation.
      * @tparam Succ Type of the successors
      */
-    template<IntVarArray Succ>
+    template<IntVarArray Succ> requires Sized<Succ>
     class CircuitSeq {
     public:
         constexpr static bool parallel = false;
@@ -74,7 +74,7 @@ namespace cp {
      * Parallel implementation.
      * @tparam Succ Type of the successors
      */
-    template<IntVarArray Succ>
+    template<IntVarArray Succ> requires Sized<Succ>
     class Circuit {
     public:
         constexpr static bool parallel = true;

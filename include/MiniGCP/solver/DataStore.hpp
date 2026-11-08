@@ -13,6 +13,7 @@
 #include "MiniGCP/search/SearchLimit.hpp"
 #include "MiniGCP/search/SearchStatistics.hpp"
 #include "MiniGCP/solver/Context.hpp"
+#include "MiniGCP/state/Array.hpp"
 
 namespace cp {
 
@@ -23,7 +24,7 @@ namespace cp {
      * @tparam localLocal Whether to store local data in local memory
      * @tparam localState Whether to store state data in local memory
      */
-    template<Decision Decision, IntVarArray Output, bool localLocal, bool localState>
+    template<Decision Decision, IntVarArray Output, bool localLocal, bool localState> requires Sized<Output>
     class DataStore {
     public:
         DataStore(

@@ -16,7 +16,7 @@ namespace cp {
      * Forward checking filtering, sequential implementation.
      * @tparam X Type of x
      */
-    template<IntVarArray X>
+    template<IntVarArray X> requires Sized<X>
     class AllDifferentFWCSeq {
     public:
         constexpr static bool parallel = false;
@@ -62,7 +62,7 @@ namespace cp {
      * Forward checking filtering, parallel implementation.
      * @tparam X Type of x
      */
-    template<IntVarArray X>
+    template<IntVarArray X> requires Sized<X>
     class AllDifferentFWC {
     public:
         constexpr static bool parallel = true;

@@ -72,17 +72,22 @@ namespace cp {
     };
 
 
+    /**
+     * @brief Integer variable
+     */
     template<typename T>
     concept IntVar = sycl::is_device_copyable_v<T> && requires(T const& var, Context ctx, Allocator& allocator) {
         { var[ctx] } -> IntVarRef;
         { var[allocator] } -> IntVarRef;
     };
 
+    /**
+     * @brief Integer variable array
+     */
     template<typename T>
     concept IntVarArray = sycl::is_device_copyable_v<T> && requires(T const& arr, Context ctx, Allocator& allocator, uint32_t i) {
         { auto(arr[ctx, i]) } -> IntVar;
         { auto(arr[allocator, i]) } -> IntVar;
-        { arr.size() } -> std::same_as<uint32_t>;
     };
 
     template<IntVarArray T>
