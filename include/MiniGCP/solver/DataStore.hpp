@@ -19,7 +19,7 @@ namespace cp {
     /**
      * @brief Device-side data
      * @tparam Decision Decision type
-     * @tparam Output Output array type
+     * @tparam Output Output pointer type
      * @tparam localLocal Whether to store local data in local memory
      * @tparam localState Whether to store state data in local memory
      */

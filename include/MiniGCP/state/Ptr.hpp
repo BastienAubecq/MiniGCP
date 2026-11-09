@@ -58,13 +58,39 @@ namespace cp {
 
 
     /**
+     * @brief Data reference
+     * @tparam scope Scope of the reference
+     * @tparam T Type of the value
+     */
+    template<typename T, Scope scope>
+    class Ref : private Ptr<T, scope> {
+    public:
+        /**
+         * @brief Allocate a value
+         * @param allocator CP model allocator
+         * @param value The value
+         */
+        Ref(Allocator& allocator, T value) :
+            Ptr<T, scope>(allocator, std::span(&value, 1)) {}
+
+        T& operator[](Context ctx) const {
+            return *this->Ptr<T, scope>::operator[](ctx);
+        }
+
+        T& operator[](Allocator& allocator) const {
+            return *this->Ptr<T, scope>::operator[](allocator);
+        }
+    };
+
+
+    /**
      * @brief Same value multiple times
      * @tparam T Type of the value
      */
     template<typename T>
     class Same {
     public:
-        Same(T x) : x(x) {}
+        explicit Same(T x) : x(x) {}
 
         T operator[](Context, uint32_t) const {
             return x;
@@ -98,9 +124,9 @@ namespace cp {
      * @brief Pointer in a context
      */
     template<typename T>
-    concept ContextPtr = sycl::is_device_copyable_v<T> && requires(T const& arr, Context ctx, Allocator& allocator, uint32_t i) {
-        arr[ctx, i];
-        arr[allocator, i];
+    concept ContextPtr = sycl::is_device_copyable_v<T> && requires(T const& ptr, Context ctx, Allocator& allocator, uint32_t i) {
+        ptr[ctx, i];
+        ptr[allocator, i];
     };
 
 }

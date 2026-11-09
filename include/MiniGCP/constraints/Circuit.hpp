@@ -7,7 +7,6 @@
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/IntVar.hpp"
 #include "MiniGCP/state/Ptr.hpp"
-#include "MiniGCP/state/Ref.hpp"
 
 namespace cp {
 

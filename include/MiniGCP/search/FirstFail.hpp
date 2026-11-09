@@ -19,7 +19,7 @@ namespace cp {
      * Select the variable with the smallest non-empty domain.
      * Fix the variable to its minimum value in the left branch.
      * Remove that value in the right branch.
-     * @tparam T Type of the variable array
+     * @tparam T Type of the variable pointer
      */
     template<IntVarPtr T>
     class FirstFail {

@@ -15,8 +15,8 @@ using namespace cp;
 static auto getNQueensSolver(uint32_t n, IsDeviceParams auto params) {
     Model<
         AllDifferentFWC<IntBitsetPtr>,
-        AllDifferentFWC<AddArr<IntBitsetPtr, Range>>,
-        AllDifferentFWC<AddArr<NegArr<IntBitsetPtr>, Range>>
+        AllDifferentFWC<AddVec<IntBitsetPtr, Range>>,
+        AllDifferentFWC<AddVec<NegVec<IntBitsetPtr>, Range>>
     > model;
 
     IntBitsetPtr variables(model, n, n);
@@ -56,6 +56,32 @@ static auto getNQueensBinarySolver(uint32_t n, IsDeviceParams auto params) {
 }
 
 
+/**
+ * @brief Get a solver for an NQueens problem instance.
+ * The problem is decomposed into vectors of binary constraints.
+ * @param n Number of queens
+ * @param params Device parameters
+ * @return The solver
+ */
+static auto getNQueensVectorSolver(uint32_t n, IsDeviceParams auto params) {
+    Model<
+        NotEqualVec<Same<IntBitset>, IntBitsetPtr>,
+        NotEqualVec<Same<Add<IntBitset, int32_t>>, AddVec<IntBitsetPtr, Range>>,
+        NotEqualVec<Same<Add<Neg<IntBitset>, int32_t>>, AddVec<NegVec<IntBitsetPtr>, Range>>
+    > model;
+
+    IntBitsetPtr variables(model, n, n);
+    for (int32_t i = 1; i < n; i++) {
+        model.constraint(NotEqualVec(Same(variables[i]), variables, i));
+        model.constraint(NotEqualVec(Same(variables[i] + i), variables + Range(), i));
+        model.constraint(NotEqualVec(Same(-variables[i] + i), -variables + Range(), i));
+    }
+
+    FirstFail strategy(variables, n);
+    return DFSSolver(model, Satisfaction(), variables, n, strategy, params);
+}
+
+
 #ifndef NO_MAIN
 int main(int argc, char const* const* argv) {
     if (argc < 2 || argc > 3) {
@@ -66,7 +92,7 @@ int main(int argc, char const* const* argv) {
     uint32_t n = std::stoi(argv[1]);
     uint32_t limit = argc == 3 ? std::stoi(argv[2]) : UINT32_MAX;
     DeviceParams<1> params(sycl::cpu_selector_v, 1);
-    auto solver = getNQueensSolver(n, params);
+    auto solver = getNQueensVectorSolver(n, params);
     solver.solve([=](SearchStatistics stats) { return stats.nSolutions >= limit; });
 
     cout << solver.getStatistics() << endl;

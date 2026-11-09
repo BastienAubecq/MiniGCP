@@ -82,12 +82,12 @@ namespace cp {
     };
 
     /**
-     * @brief Integer variable array
+     * @brief Integer variable pointer
      */
     template<typename T>
-    concept IntVarPtr = sycl::is_device_copyable_v<T> && requires(T const& arr, Context ctx, Allocator& allocator, uint32_t i) {
-        { auto(arr[ctx, i]) } -> IntVar;
-        { auto(arr[allocator, i]) } -> IntVar;
+    concept IntVarPtr = sycl::is_device_copyable_v<T> && requires(T const& ptr, Context ctx, Allocator& allocator, uint32_t i) {
+        { auto(ptr[ctx, i]) } -> IntVar;
+        { auto(ptr[allocator, i]) } -> IntVar;
     };
 
     template<IntVarPtr T>

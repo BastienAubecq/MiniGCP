@@ -61,3 +61,25 @@ TEST_CASE("NQueens_binary statistics", "[NQueens_binary][example]") {
     REQUIRE(stats.nFailures == 101882);
     REQUIRE(stats.completed);
 }
+
+
+TEST_CASE("NQueens_vector feasible", "[NQueens_vector][example]") {
+    for (uint32_t n = 10; n <= 100; n += 5) {
+        auto solver = getNQueensVectorSolver(n, testParams);
+        solver.solve(firstSolution);
+
+        REQUIRE(solver.getStatistics().nSolutions == 1);
+        requireFeasible(n, solver.getSolution());
+    }
+}
+
+TEST_CASE("NQueens_vector statistics", "[NQueens_vector][example]") {
+    auto solver = getNQueensVectorSolver(12, testParams);
+    solver.solve(noLimit);
+    SearchStatistics stats = solver.getStatistics();
+
+    REQUIRE(stats.nSolutions == 14200);
+    REQUIRE(stats.nNodes == 232163);
+    REQUIRE(stats.nFailures == 101882);
+    REQUIRE(stats.completed);
+}

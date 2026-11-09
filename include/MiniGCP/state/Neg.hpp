@@ -84,13 +84,13 @@ namespace cp {
 
 
     /**
-     * @brief Negate an array
-     * @tparam T Type of the array
+     * @brief Negate a vector
+     * @tparam T Type of the vector
      */
     template<ContextPtr T>
-    class NegArr {
+    class NegVec {
     public:
-        explicit NegArr(T x) : x(x) {}
+        explicit NegVec(T x) : x(x) {}
 
         auto operator[](Context ctx, uint32_t i) const {
             return -x[ctx, i];
@@ -105,8 +105,8 @@ namespace cp {
     };
 
     template<ContextPtr T>
-    inline NegArr<T> operator-(T x) {
-        return NegArr(x);
+    inline NegVec<T> operator-(T x) {
+        return NegVec(x);
     }
 
 }

@@ -99,14 +99,14 @@ namespace cp {
 
 
     /**
-     * @brief Add two arrays
-     * @tparam X Type of the first array
-     * @tparam Y Type of the second array
+     * @brief Add two vectors
+     * @tparam X Type of the first vector
+     * @tparam Y Type of the second vector
      */
     template<ContextPtr X, ContextPtr Y>
-    class AddArr {
+    class AddVec {
     public:
-        AddArr(X x, Y y = {}) : x(x), y(y) {}
+        AddVec(X x, Y y = {}) : x(x), y(y) {}
 
         auto operator[](Context ctx, uint32_t i) const {
             return x[ctx, i] + y[ctx, i];
@@ -122,13 +122,13 @@ namespace cp {
     };
 
     template<ContextPtr X, ContextPtr Y>
-    inline AddArr<X, Y> operator+(X x, Y y) {
-        return AddArr(x, y);
+    inline AddVec<X, Y> operator+(X x, Y y) {
+        return AddVec(x, y);
     }
 
     template<ContextPtr X, ContextPtr Y>
     inline auto operator-(X x, Y y) {
-        return AddArr(x, -y);
+        return AddVec(x, -y);
     }
 
 }

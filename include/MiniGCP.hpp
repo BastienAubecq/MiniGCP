@@ -14,4 +14,3 @@
 #include "MiniGCP/state/IntInterval.hpp"
 #include "MiniGCP/state/Neg.hpp"
 #include "MiniGCP/state/Ptr.hpp"
-#include "MiniGCP/state/Ref.hpp"

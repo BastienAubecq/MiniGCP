@@ -30,10 +30,32 @@ namespace cp {
         Y y;
     };
 
-
-    inline auto operator!=(IntVar auto x, IntVar auto y) {
+    template<IntVar X, IntVar Y>
+    inline NotEqual<X, Y> operator!=(X x, Y y) {
         return NotEqual(x, y);
     }
+
+
+    template<IntVarPtr X, IntVarPtr Y>
+    class NotEqualVec {
+    public:
+        constexpr static bool parallel = true;
+
+        NotEqualVec(X x, Y y, uint32_t n) : x(x), y(y), n(n) {}
+
+        DomainChange propagate(Context ctx) const {
+            DomainChange change = DomainChange::none;
+            for (uint32_t i = ctx.item.get_local_id(0); i < n; i += ctx.item.get_local_range(0)) {
+                change |= NotEqual(x[ctx, i], y[ctx, i]).propagate(ctx);
+            }
+            return groupChange(ctx.item.get_group(), change);
+        }
+
+    private:
+        X x;
+        Y y;
+        uint32_t n;
+    };
 
 }
 
