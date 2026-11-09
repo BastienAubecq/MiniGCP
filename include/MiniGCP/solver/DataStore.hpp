@@ -13,7 +13,6 @@
 #include "MiniGCP/search/SearchLimit.hpp"
 #include "MiniGCP/search/SearchStatistics.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/Array.hpp"
 
 namespace cp {
 
@@ -24,13 +23,13 @@ namespace cp {
      * @tparam localLocal Whether to store local data in local memory
      * @tparam localState Whether to store state data in local memory
      */
-    template<Decision Decision, IntVarArray Output, bool localLocal, bool localState> requires Sized<Output>
+    template<Decision Decision, IntVarPtr Output, bool localLocal, bool localState>
     class DataStore {
     public:
         DataStore(
             sycl::queue& queue, std::array<std::span<std::byte const>, 3> data, uint32_t temporarySize,
-            Output output, size_t nGroups, uint32_t maxDepth
-        ) : temporarySize(temporarySize), output(output) {
+            Output output, uint32_t outputSize, size_t nGroups, uint32_t maxDepth
+        ) : temporarySize(temporarySize), outputSize(outputSize), output(output) {
             globalSize = data[0].size();
             localSize = data[1].size();
             stateSize = data[2].size();
@@ -40,21 +39,21 @@ namespace cp {
             size_t allocLocalSize = localSize * (1 + nGroups);
             size_t allocStateSize = stateSize * (1 + (stackSize + 1) * nGroups);
 
-            int32_t* outputInit = new int32_t[(output.size() + 1) * nGroups];
+            int32_t* outputInit = new int32_t[(outputSize + 1) * nGroups];
             for (size_t i = 0; i < nGroups; i++) {
-                outputInit[(output.size() + 1) * i + output.size()] = INT32_MAX;
+                outputInit[(outputSize + 1) * i + outputSize] = INT32_MAX;
             }
 
             globalData = globalSize == 0 ? nullptr : sycl::malloc_device<std::byte>(globalSize, queue);
             localData = localSize == 0 ? nullptr : sycl::malloc_device<std::byte>(allocLocalSize, queue);
             stateData = stateSize == 0 ? nullptr : sycl::malloc_device<std::byte>(allocStateSize, queue);
-            outputData = sycl::malloc_device<int32_t>((output.size() + 1) * nGroups, queue);
+            outputData = sycl::malloc_device<int32_t>((outputSize + 1) * nGroups, queue);
             decisions = sycl::malloc_device<Decision>(stackSize * nGroups, queue);
             tops = sycl::malloc_device<uint32_t>(nGroups, queue);
             if (globalSize > 0) queue.memcpy(globalData, data[0].data(), globalSize);
             if (localSize > 0) queue.memcpy(localData, data[1].data(), localSize);
             if (stateSize > 0) queue.memcpy(stateData, data[2].data(), stateSize);
-            queue.memcpy(outputData, outputInit, sizeof(int32_t) * (output.size() + 1) * nGroups);
+            queue.memcpy(outputData, outputInit, sizeof(int32_t) * (outputSize + 1) * nGroups);
             queue.memset(tops, 0, sizeof(uint32_t) * nGroups);
             queue.wait();
 
@@ -88,11 +87,11 @@ namespace cp {
          * @param solution Values of the output variables
          */
         void getOutput(sycl::queue& queue, size_t nGroups, int32_t objective, int32_t* solution) const {
-            int32_t* outputData = new int32_t[(output.size() + 1) * nGroups];
-            queue.memcpy(outputData, this->outputData, sizeof(int32_t) * (output.size() + 1) * nGroups).wait();
+            int32_t* outputData = new int32_t[(outputSize + 1) * nGroups];
+            queue.memcpy(outputData, this->outputData, sizeof(int32_t) * (outputSize + 1) * nGroups).wait();
             for (size_t i = 0; i < nGroups; i++) { // Take the solution of the first group that has the best objective
-                if (outputData[(output.size() + 1) * i + output.size()] == objective) {
-                    std::copy(outputData + (output.size() + 1) * i, outputData + (output.size() + 1) * i + output.size(), solution);
+                if (outputData[(outputSize + 1) * i + outputSize] == objective) {
+                    std::copy(outputData + (outputSize + 1) * i, outputData + (outputSize + 1) * i + outputSize, solution);
                     break;
                 }
             }
@@ -211,11 +210,11 @@ namespace cp {
          * @param objective Objective value
          */
         void solution(Context ctx, int32_t objective) const {
-            for (uint32_t i = ctx.item.get_local_id(0); i < output.size(); i += ctx.item.get_local_range(0)) {
-                outputData[(output.size() + 1) * ctx.item.get_group(0) + i] = output[ctx, i][ctx].min();
+            for (uint32_t i = ctx.item.get_local_id(0); i < outputSize; i += ctx.item.get_local_range(0)) {
+                outputData[(outputSize + 1) * ctx.item.get_group(0) + i] = output[ctx, i][ctx].min();
             }
             if (ctx.item.get_local_id(0) == 0) {
-                outputData[(output.size() + 1) * ctx.item.get_group(0) + output.size()] = objective;
+                outputData[(outputSize + 1) * ctx.item.get_group(0) + outputSize] = objective;
             }
             sycl::group_barrier(ctx.item.get_group());
         }
@@ -225,7 +224,7 @@ namespace cp {
             sycl::group_barrier(ctx.item.get_group());
             if (ctx.item.get_local_id(0) == 0) {
                 printf("--- State ---\n");
-                for (uint32_t i = 0; i < output.size(); i++) {
+                for (uint32_t i = 0; i < outputSize; i++) {
                     ctx[ctx[output][i]].print();
                 }
                 printf("--- End State ---\n");
@@ -240,6 +239,7 @@ namespace cp {
         uint32_t stateSize;
         uint32_t stackSize;
         uint32_t temporarySize;
+        uint32_t outputSize;
         std::byte* globalData;
         std::byte* localData;
         std::byte* stateData; // Stacks of states

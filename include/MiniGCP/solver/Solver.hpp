@@ -14,7 +14,6 @@
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/solver/DataStore.hpp"
 #include "MiniGCP/solver/DeviceParams.hpp"
-#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/IntVar.hpp"
 #include "MiniGCP/state/Objective.hpp"
 
@@ -23,7 +22,7 @@ namespace cp {
     /**
      * @brief Device-side solver
      */
-    template<Objective Objective, IntVarArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
+    template<Objective Objective, IntVarPtr Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class DeviceSolver {
     public:
         Objective objective;
@@ -33,9 +32,9 @@ namespace cp {
         SearchStatistics* statistics;
         bool firstSearch = true;
 
-        DeviceSolver(sycl::queue& queue, Model<Constraints...> model, Objective objective, Output output, Strategy strategy, uint32_t nGroups) :
+        DeviceSolver(sycl::queue& queue, Model<Constraints...> model, Objective objective, Output output, uint32_t outputSize, Strategy strategy, uint32_t nGroups) :
             objective(objective), strategy(strategy),
-            data(queue, model.getData(), model.getTemporarySize(), output, nGroups, strategy.maxDepth()),
+            data(queue, model.getData(), model.getTemporarySize(), output, outputSize, nGroups, strategy.maxDepth()),
             constraints(queue, model.getConstraints()) {
             statistics = sycl::malloc_device<SearchStatistics>(1, queue);
             SearchStatistics stats;
@@ -135,14 +134,14 @@ namespace cp {
     /**
      * @brief CP solver base class
      */
-    template<Objective Objective, IntVarArray Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints> requires Sized<Output>
+    template<Objective Objective, IntVarPtr Output, SearchStrategy Strategy, IsDeviceParams DeviceParams, Constraint... Constraints>
     class Solver {
     public:
-        Solver(Model<Constraints...> model, Objective objective, Output output, Strategy strategy, DeviceParams params) :
+        Solver(Model<Constraints...> model, Objective objective, Output output, uint32_t outputSize, Strategy strategy, DeviceParams params) :
             queue(params.selector, sycl::property_list()),
             params(params),
-            solver(queue, model, objective, output, strategy, params.nGroups),
-            solution(output.size()) {}
+            solver(queue, model, objective, output, outputSize, strategy, params.nGroups),
+            solution(outputSize) {}
 
         ~Solver() {
             solver.destroy(queue);

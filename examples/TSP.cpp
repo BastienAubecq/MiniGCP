@@ -63,25 +63,25 @@ public:
  */
 static auto getTSPSolver(TSPInstance const& instance, IsDeviceParams auto params) {
     Model<
-        AllDifferentFWC<IntBitsetArray>,
-        Circuit<IntBitsetArray>,
+        AllDifferentFWC<IntBitsetPtr>,
+        Circuit<IntBitsetPtr>,
         Element1D<IntBitset, IntInterval>,
-        Sum<IntIntervalArray, IntInterval>
+        Sum<IntIntervalPtr, IntInterval>
     > model;
 
     uint32_t n = instance.n;
-    IntBitsetArray succ(model, n, n);
-    model.constraint(AllDifferentFWC(model, succ));
-    model.constraint(Circuit(model, succ));
-    IntIntervalArray cost(model, n);
+    IntBitsetPtr succ(model, n, n);
+    model.constraint(AllDifferentFWC(model, succ, n));
+    model.constraint(Circuit(model, succ, n));
+    IntIntervalPtr cost(model, n);
     for (uint32_t i = 0; i < n; i++) {
         span<int32_t const> distances(instance.distances.data() + i * n, n);
-        model.constraint(Element1D(model, Array(model, distances), succ[i], cost[i]));
+        model.constraint(Element1D(model, Ptr(model, distances), n, succ[i], cost[i]));
     }
-    IntInterval objective = sum(model, cost);
+    IntInterval objective = sum(model, cost, n);
 
-    FirstFail strategy(succ);
-    return DFSSolver(model, Minimization(objective), succ, strategy, params);
+    FirstFail strategy(succ, n);
+    return DFSSolver(model, Minimization(objective), succ, n, strategy, params);
 }
 
 

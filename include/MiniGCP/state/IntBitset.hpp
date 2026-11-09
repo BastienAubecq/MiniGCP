@@ -9,7 +9,6 @@
 #include "sycl/sycl.hpp"
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
 
 namespace cp {
@@ -356,18 +355,17 @@ namespace cp {
 
 
     /**
-     * @brief IntBitset array that only stores the index of the first variable
+     * @brief Pointer to integer bitsets
      */
-    class IntBitsetArray {
+    class IntBitsetPtr {
     public:
         /**
          * @brief Allocate an array of integer variables with initially full bitset domains starting at 0
          * @param allocator CP model allocator
          * @param size Size of the domains
          * @param count Number of variables in the array
-         * @return The array
          */
-        IntBitsetArray(Allocator& allocator, int32_t size, uint32_t count) : count(count) {
+        IntBitsetPtr(Allocator& allocator, int32_t size, uint32_t count) {
             if (size <= 0) throw std::invalid_argument("size must be strictly positive");
             int32_t nFull = size / 32;
             int32_t remaining = size % 32;
@@ -400,9 +398,8 @@ namespace cp {
          * @param allocator CP model allocator
          * @param values Values in the domains
          * @param count Number of variables in the array
-         * @return The array
          */
-        IntBitsetArray(Allocator& allocator, std::span<const int32_t> values, uint32_t count) : count(count) {
+        IntBitsetPtr(Allocator& allocator, std::span<const int32_t> values, uint32_t count) {
             int32_t max = std::numeric_limits<int32_t>::min();
             for (int32_t v : values) {
                 if (v < 0) throw std::invalid_argument("values can't be negative");
@@ -441,21 +438,16 @@ namespace cp {
             return (*this)[i];
         }
 
-        uint32_t size() const {
-            return count;
-        }
-
     private:
         uint32_t index;
-        uint32_t count;
         uint32_t stride;
     };
 
     inline IntBitset::IntBitset(Allocator& allocator, int32_t size) :
-        index(IntBitsetArray(allocator, size, 1)[0].index) {}
+        index(IntBitsetPtr(allocator, size, 1)[0].index) {}
 
     inline IntBitset::IntBitset(Allocator& allocator, std::span<const int32_t> values) :
-        index(IntBitsetArray(allocator, values, 1)[0].index) {}
+        index(IntBitsetPtr(allocator, values, 1)[0].index) {}
 
 }
 

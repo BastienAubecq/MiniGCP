@@ -35,7 +35,7 @@ TEST_CASE("HostIntInterval allocation min max", "[HostIntInterval][host]") {
 
 TEST_CASE("HostIntInterval allocation array", "[HostIntInterval][host]") {
     Allocator allocator;
-    IntIntervalArray arr(allocator, 10, 10);
+    IntIntervalPtr arr(allocator, 10, 10);
 
     for (int i = 0; i < 10; i++) {
         HostIntInterval& v = arr[i][allocator];

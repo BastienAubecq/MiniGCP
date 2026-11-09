@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include <string>
 #include "MiniGCP.hpp"
 
@@ -15,18 +14,18 @@ using namespace cp;
  */
 static auto getNQueensSolver(uint32_t n, IsDeviceParams auto params) {
     Model<
-        AllDifferentFWC<IntBitsetArray>,
-        AllDifferentFWC<AddArr<IntBitsetArray, Range>>,
-        AllDifferentFWC<AddArr<NegArr<IntBitsetArray>, Range>>
+        AllDifferentFWC<IntBitsetPtr>,
+        AllDifferentFWC<AddArr<IntBitsetPtr, Range>>,
+        AllDifferentFWC<AddArr<NegArr<IntBitsetPtr>, Range>>
     > model;
 
-    IntBitsetArray variables(model, n, n);
-    model.constraint(AllDifferentFWC(model, variables));
-    model.constraint(AllDifferentFWC(model, variables + Range()));
-    model.constraint(AllDifferentFWC(model, -variables + Range()));
+    IntBitsetPtr variables(model, n, n);
+    model.constraint(AllDifferentFWC(model, variables, n));
+    model.constraint(AllDifferentFWC(model, variables + Range(), n));
+    model.constraint(AllDifferentFWC(model, -variables + Range(), n));
 
-    FirstFail strategy(variables);
-    return DFSSolver(model, Satisfaction(), variables, strategy, params);
+    FirstFail strategy(variables, n);
+    return DFSSolver(model, Satisfaction(), variables, n, strategy, params);
 }
 
 
@@ -43,7 +42,7 @@ static auto getNQueensBinarySolver(uint32_t n, IsDeviceParams auto params) {
         NotEqual<Add<IntBitset, int32_t>, Add<IntBitset, int32_t>>
     > model;
 
-    IntBitsetArray variables(model, n, n);
+    IntBitsetPtr variables(model, n, n);
     for (int32_t i = 0; i < n; i++) {
         for (int32_t j = 0; j < i; j++) {
             model.constraint(variables[i] != variables[j]);
@@ -52,8 +51,8 @@ static auto getNQueensBinarySolver(uint32_t n, IsDeviceParams auto params) {
         }
     }
 
-    FirstFail strategy(variables);
-    return DFSSolver(model, Satisfaction(), variables, strategy, params);
+    FirstFail strategy(variables, n);
+    return DFSSolver(model, Satisfaction(), variables, n, strategy, params);
 }
 
 

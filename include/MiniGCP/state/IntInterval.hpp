@@ -6,7 +6,6 @@
 #include "sycl/sycl.hpp"
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
 
 namespace cp {
@@ -186,9 +185,9 @@ namespace cp {
 
 
     /**
-     * @brief IntInterval array that only stores the index of the first variable 
+     * @brief Pointer to integer intervals
      */
-    class IntIntervalArray {
+    class IntIntervalPtr {
     public:
         /**
          * @brief Allocate an array of integer variables with interval domains
@@ -196,9 +195,8 @@ namespace cp {
          * @param min Minimum value in the domains
          * @param max Maximum value in the domains
          * @param count Number of variables in the array
-         * @return The array
          */
-        IntIntervalArray(Allocator& allocator, int32_t min, int32_t max, uint32_t count) : count(count) {
+        IntIntervalPtr(Allocator& allocator, int32_t min, int32_t max, uint32_t count) {
             if (max < min) throw std::invalid_argument("max must be greater than or equal to min");
             index = allocator.allocate<HostIntInterval, Scope::state>(count);
             HostIntInterval* var = allocator.getData<HostIntInterval, Scope::state>(index);
@@ -212,19 +210,17 @@ namespace cp {
          * @param allocator CP model allocator
          * @param size Number of values in the domains
          * @param count Number of variables in the array
-         * @return The array
          */
-        IntIntervalArray(Allocator& allocator, int32_t size, uint32_t count) :
-            IntIntervalArray(allocator, 0, size - 1, count) {}
+        IntIntervalPtr(Allocator& allocator, int32_t size, uint32_t count) :
+            IntIntervalPtr(allocator, 0, size - 1, count) {}
 
         /**
          * @brief Allocate an array of integer variables with interval domains spanning all integers
          * @param allocator CP model allocator
          * @param count Number of variables in the array
-         * @return The array
          */
-        IntIntervalArray(Allocator& allocator, uint32_t count) :
-            IntIntervalArray(allocator, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max(), count) {}
+        IntIntervalPtr(Allocator& allocator, uint32_t count) :
+            IntIntervalPtr(allocator, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max(), count) {}
 
         IntInterval operator[](uint32_t i) const {
             return IntInterval(index + i * sizeof(HostIntInterval));
@@ -238,13 +234,8 @@ namespace cp {
             return (*this)[i];
         }
 
-        uint32_t size() const {
-            return count;
-        }
-
     private:
         uint32_t index;
-        uint32_t count;
     };
 
 }

@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <span>
 #include <algorithm>
-#include <concepts>
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/Const.hpp"
@@ -13,28 +12,27 @@
 namespace cp {
 
     /**
-     * @brief Data array
-     * @tparam scope Scope of the array
-     * @tparam T Type of elements in the array
+     * @brief Data pointer
+     * @tparam scope Scope of the pointer
+     * @tparam T Type of pointed elements
      */
     template<typename T, Scope scope = Scope::global>
-    class Array {
+    class Ptr {
     public:
         /**
          * @brief Allocate a zero-initialized array
          * @param allocator CP model allocator
          * @param count Number of elements in the array
          */
-        Array(Allocator& allocator, uint32_t count) :
-            index(allocator.allocate<T, scope>(count)),
-            count(count) {}
+        Ptr(Allocator& allocator, uint32_t count) :
+            index(allocator.allocate<T, scope>(count)) {}
 
         /**
          * @brief Allocate an array
          * @param allocator CP model allocator
          * @param values Initial values in the array
          */
-        Array(Allocator& allocator, std::span<T const> values) : Array(allocator, values.size()) {
+        Ptr(Allocator& allocator, std::span<T const> values) : Ptr(allocator, values.size()) {
             std::copy(values.begin(), values.end(), (*this)[allocator]);
         }
 
@@ -54,18 +52,13 @@ namespace cp {
             return (*this)[allocator][i];
         }
 
-        uint32_t size() const {
-            return count;
-        }
-
     private:
         uint32_t index;
-        uint32_t count;
     };
 
 
     /**
-     * @brief Array that contains the same value multiple times
+     * @brief Same value multiple times
      * @tparam T Type of the value
      */
     template<typename T>
@@ -102,35 +95,13 @@ namespace cp {
 
 
     /**
-     * @brief Array in a context
+     * @brief Pointer in a context
      */
     template<typename T>
-    concept ContextArray = requires(T const& arr, Context ctx, Allocator& allocator, uint32_t i) {
+    concept ContextPtr = sycl::is_device_copyable_v<T> && requires(T const& arr, Context ctx, Allocator& allocator, uint32_t i) {
         arr[ctx, i];
         arr[allocator, i];
     };
-
-
-    /**
-     * @brief At least one parameter has a size
-     */
-    template<typename... T>
-    concept Sized = (requires(T const& x) {
-        { x.size() } -> std::same_as<uint32_t>;
-    } || ...);
-
-    /**
-     * @brief Get the size of any argument that has a size
-     */
-    template<typename T, typename... Ts>
-    uint32_t size(T const& x, Ts const&...) requires Sized<T> {
-        return x.size();
-    }
-
-    template<typename T, typename... Ts>
-    uint32_t size(T const&, Ts const&... xs) {
-        return size(xs...);
-    }
 
 }
 

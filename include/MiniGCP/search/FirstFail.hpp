@@ -10,7 +10,6 @@
 #include "MiniGCP/utils.hpp"
 #include "MiniGCP/search/FixRemove.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/IntVar.hpp"
 
 namespace cp {
@@ -22,15 +21,15 @@ namespace cp {
      * Remove that value in the right branch.
      * @tparam T Type of the variable array
      */
-    template<IntVarArray T> requires Sized<T>
+    template<IntVarPtr T>
     class FirstFail {
     public:
-        FirstFail(T variables) : variables(variables) {}
+        FirstFail(T variables, uint32_t n) : variables(variables), n(n) {}
 
         std::optional<FixRemove<IntVarIn<T>>> split(Context ctx) const {
             int32_t smallestSize = std::numeric_limits<int32_t>::max();
             int32_t smallestIndex = -1;
-            for (uint32_t i = ctx.item.get_local_id(0); i < variables.size(); i += ctx.item.get_local_range(0)) {
+            for (uint32_t i = ctx.item.get_local_id(0); i < n; i += ctx.item.get_local_range(0)) {
                 int32_t s = variables[ctx, i][ctx].size();
                 if (s > 1 && s < smallestSize) {
                     smallestSize = s;
@@ -45,11 +44,12 @@ namespace cp {
         }
 
         uint32_t maxDepth() const {
-            return variables.size();
+            return n;
         }
         
     private:
         T variables;
+        uint32_t n;
     };
 
 }

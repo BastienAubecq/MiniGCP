@@ -11,10 +11,10 @@ using namespace std;
 
 TEST_CASE("Element1D update z", "[Element1D]") {
     Allocator allocator;
-    Array<int32_t> t(allocator, array { 4, 3, 1, 2 });
+    Ptr<int32_t> t(allocator, array { 4, 3, 1, 2 });
     IntBitset y(allocator, array { 1, 3 });
     IntInterval z(allocator, -10, 10);
-    Element1D constraint(allocator, t, y, z);
+    Element1D constraint(allocator, t, 4, y, z);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -28,10 +28,10 @@ TEST_CASE("Element1D update z", "[Element1D]") {
 
 TEST_CASE("Element1D update y", "[Element1D]") {
     Allocator allocator;
-    Array<int32_t> t(allocator, array { 4, 3, 1, 2 });
+    Ptr<int32_t> t(allocator, array { 4, 3, 1, 2 });
     IntBitset y(allocator, 4);
     IntInterval z(allocator, 2, 3);
-    Element1D constraint(allocator, t, y, z);
+    Element1D constraint(allocator, t, 4, y, z);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -46,10 +46,10 @@ TEST_CASE("Element1D update y", "[Element1D]") {
 
 TEST_CASE("Element1D update y and z", "[Element1D]") {
     Allocator allocator;
-    Array<int32_t> t(allocator, array { 4, 3, 1, 2 });
+    Ptr<int32_t> t(allocator, array { 4, 3, 1, 2 });
     IntBitset y(allocator, array { 0, 2, 3 });
     IntInterval z(allocator, 2, 3);
-    Element1D constraint(allocator, t, y, z);
+    Element1D constraint(allocator, t, 4, y, z);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -65,10 +65,10 @@ TEST_CASE("Element1D update y and z", "[Element1D]") {
 
 TEST_CASE("Element1D no change", "[Element1D]") {
     Allocator allocator;
-    Array<int32_t> t(allocator, array { 4, 3, 1, 2 });
+    Ptr<int32_t> t(allocator, array { 4, 3, 1, 2 });
     IntBitset y(allocator, array { 1, 3 });
     IntInterval z(allocator, 2, 3);
-    Element1D constraint(allocator, t, y, z);
+    Element1D constraint(allocator, t, 4, y, z);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -79,10 +79,10 @@ TEST_CASE("Element1D no change", "[Element1D]") {
 
 TEST_CASE("Element1D inconsistency", "[Element1D]") {
     Allocator allocator;
-    Array<int32_t> t(allocator, array { 4, 3, 1, 2 });
+    Ptr<int32_t> t(allocator, array { 4, 3, 1, 2 });
     IntBitset y(allocator, array { 1, 3 });
     IntInterval z(allocator, 4, 5);
-    Element1D constraint(allocator, t, y, z);
+    Element1D constraint(allocator, t, 4, y, z);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);

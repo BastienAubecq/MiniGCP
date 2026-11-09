@@ -24,7 +24,7 @@ TEST_CASE("HostBool allocation", "[HostBool][host]") {
 
 TEST_CASE("HostBool allocation array", "[HostBool][host]") {
     Allocator allocator;
-    BoolArray arr(allocator, 10);
+    BoolPtr arr(allocator, 10);
 
     for (int i = 0; i < 10; i++) {
         HostBool& v = arr[i][allocator];

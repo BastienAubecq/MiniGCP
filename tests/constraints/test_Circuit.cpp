@@ -10,12 +10,12 @@ using namespace std;
 
 TEST_CASE("CircuitSeq one cycle", "[CircuitSeq]") {
     Allocator allocator;
-    IntBitsetArray x(allocator, 10, 10);
+    IntBitsetPtr x(allocator, 10, 10);
     x[allocator, 3][allocator].fix(5);
     x[allocator, 5][allocator].fix(7);
     x[allocator, 7][allocator].fix(2);
     x[allocator, 2][allocator].fix(8);
-    CircuitSeq constraint(allocator, x);
+    CircuitSeq constraint(allocator, x, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -32,14 +32,14 @@ TEST_CASE("CircuitSeq one cycle", "[CircuitSeq]") {
 
 TEST_CASE("CircuitSeq few cycles", "[CircuitSeq]") {
     Allocator allocator;
-    IntBitsetArray x(allocator, 10, 10);
+    IntBitsetPtr x(allocator, 10, 10);
     x[allocator, 3][allocator].fix(5);
     x[allocator, 0][allocator].fix(1);
     x[allocator, 1][allocator].fix(9);
     x[allocator, 8][allocator].fix(2);
     x[allocator, 2][allocator].fix(4);
     x[allocator, 4][allocator].fix(7);
-    CircuitSeq constraint(allocator, x);
+    CircuitSeq constraint(allocator, x, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -54,11 +54,11 @@ TEST_CASE("CircuitSeq few cycles", "[CircuitSeq]") {
 
 TEST_CASE("CircuitSeq full cycle", "[CircuitSeq]") {
     Allocator allocator;
-    IntBitsetArray x(allocator, 10, 10);
+    IntBitsetPtr x(allocator, 10, 10);
     for (int i = 0; i < 9; i++) {
         x[allocator, i][allocator].fix(i + 1);
     }
-    CircuitSeq constraint(allocator, x);
+    CircuitSeq constraint(allocator, x, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -70,12 +70,12 @@ TEST_CASE("CircuitSeq full cycle", "[CircuitSeq]") {
 
 TEST_CASE("Circuit one cycle", "[Circuit]") {
     Allocator allocator;
-    IntBitsetArray x(allocator, 10, 10);
+    IntBitsetPtr x(allocator, 10, 10);
     x[allocator, 3][allocator].fix(5);
     x[allocator, 5][allocator].fix(7);
     x[allocator, 7][allocator].fix(2);
     x[allocator, 2][allocator].fix(8);
-    Circuit constraint(allocator, x);
+    Circuit constraint(allocator, x, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -92,14 +92,14 @@ TEST_CASE("Circuit one cycle", "[Circuit]") {
 
 TEST_CASE("Circuit few cycles", "[Circuit]") {
     Allocator allocator;
-    IntBitsetArray x(allocator, 10, 10);
+    IntBitsetPtr x(allocator, 10, 10);
     x[allocator, 3][allocator].fix(5);
     x[allocator, 0][allocator].fix(1);
     x[allocator, 1][allocator].fix(9);
     x[allocator, 8][allocator].fix(2);
     x[allocator, 2][allocator].fix(4);
     x[allocator, 4][allocator].fix(7);
-    Circuit constraint(allocator, x);
+    Circuit constraint(allocator, x, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -114,11 +114,11 @@ TEST_CASE("Circuit few cycles", "[Circuit]") {
 
 TEST_CASE("Circuit full cycle", "[Circuit]") {
     Allocator allocator;
-    IntBitsetArray x(allocator, 10, 10);
+    IntBitsetPtr x(allocator, 10, 10);
     for (int i = 0; i < 9; i++) {
         x[allocator, i][allocator].fix(i + 1);
     }
-    Circuit constraint(allocator, x);
+    Circuit constraint(allocator, x, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -130,11 +130,11 @@ TEST_CASE("Circuit full cycle", "[Circuit]") {
 
 TEST_CASE("Circuit concurrent few variables", "[Circuit][concurrent]") {
     Allocator allocator;
-    IntBitsetArray x(allocator, 10, 10);
+    IntBitsetPtr x(allocator, 10, 10);
     for (int i = 1; i < 8; i += 2) {
         x[allocator, i][allocator].fix(i + 2);
     }
-    Circuit constraint(allocator, x);
+    Circuit constraint(allocator, x, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -149,11 +149,11 @@ TEST_CASE("Circuit concurrent few variables", "[Circuit][concurrent]") {
 
 TEST_CASE("Circuit concurrent many variables", "[Circuit][concurrent]") {
     Allocator allocator;
-    IntBitsetArray x(allocator, 100, 100);
+    IntBitsetPtr x(allocator, 100, 100);
     for (int i = 1; i < 98; i += 2) {
         x[allocator, i][allocator].fix(i + 2);
     }
-    Circuit constraint(allocator, x);
+    Circuit constraint(allocator, x, 100);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
         return constraint.propagate(ctx);

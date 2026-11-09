@@ -9,19 +9,19 @@
 namespace cp {
 
     /**
-     * @brief Data value
-     * @tparam scope Scope of the value
+     * @brief Data reference
+     * @tparam scope Scope of the reference
      * @tparam T Type of the value
      */
     template<typename T, Scope scope = Scope::global>
-    class Value {
+    class Ref {
     public:
         /**
          * @brief Allocate a value
          * @param allocator CP model allocator
          * @param value The value
          */
-        Value(Allocator& allocator, int32_t value) {
+        Ref(Allocator& allocator, int32_t value) {
             index = allocator.allocate<T, scope>(1);
             (*this)[allocator] = value;
         }

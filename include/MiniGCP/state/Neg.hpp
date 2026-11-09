@@ -4,9 +4,9 @@
 #include <functional>
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
 #include "MiniGCP/state/IntVar.hpp"
+#include "MiniGCP/state/Ptr.hpp"
 
 namespace cp {
 
@@ -74,7 +74,7 @@ namespace cp {
         }
 
     private:
-        [[no_unique_address]] T x;
+        T x;
     };
 
     template<IntVar T>
@@ -87,7 +87,7 @@ namespace cp {
      * @brief Negate an array
      * @tparam T Type of the array
      */
-    template<ContextArray T>
+    template<ContextPtr T>
     class NegArr {
     public:
         explicit NegArr(T x) : x(x) {}
@@ -100,15 +100,11 @@ namespace cp {
             return -x[allocator, i];
         }
 
-        uint32_t size() const requires Sized<T> {
-            return x.size();
-        }
-
     private:
         [[no_unique_address]] T x;
     };
 
-    template<ContextArray T>
+    template<ContextPtr T>
     inline NegArr<T> operator-(T x) {
         return NegArr(x);
     }

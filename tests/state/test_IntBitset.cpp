@@ -50,7 +50,7 @@ TEST_CASE("HostIntBitset allocation values", "[HostIntBitset][host]") {
 
 TEST_CASE("HostIntBitset allocation array", "[HostIntBitset][host]") {
     Allocator allocator;
-    IntBitsetArray arr(allocator, 10, 10);
+    IntBitsetPtr arr(allocator, 10, 10);
 
     for (int i = 0; i < 10; i++) {
         HostIntBitsetRef v = arr[i][allocator];

@@ -4,9 +4,9 @@
 #include <concepts>
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
-#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
 #include "MiniGCP/state/IntVar.hpp"
+#include "MiniGCP/state/Ptr.hpp"
 
 namespace cp {
 
@@ -78,7 +78,7 @@ namespace cp {
         }
 
     private:
-        [[no_unique_address]] V x;
+        V x;
         [[no_unique_address]] C y;
     };
 
@@ -93,7 +93,7 @@ namespace cp {
     }
 
     template<IntVar V, std::convertible_to<int32_t> C>
-    inline Add<V, C> operator-(V x, C y) {
+    inline auto operator-(V x, C y) {
         return Add(x, -y);
     }
 
@@ -103,7 +103,7 @@ namespace cp {
      * @tparam X Type of the first array
      * @tparam Y Type of the second array
      */
-    template<ContextArray X, ContextArray Y>
+    template<ContextPtr X, ContextPtr Y>
     class AddArr {
     public:
         AddArr(X x, Y y = {}) : x(x), y(y) {}
@@ -116,22 +116,18 @@ namespace cp {
             return x[allocator, i] + y[allocator, i];
         }
 
-        uint32_t size() const requires Sized<X, Y> {
-            return cp::size(x, y);
-        }
-
     private:
         [[no_unique_address]] X x;
         [[no_unique_address]] Y y;
     };
 
-    template<ContextArray X, ContextArray Y>
+    template<ContextPtr X, ContextPtr Y>
     inline AddArr<X, Y> operator+(X x, Y y) {
         return AddArr(x, y);
     }
 
-    template<ContextArray X, ContextArray Y>
-    inline AddArr<X, Y> operator-(X x, Y y) {
+    template<ContextPtr X, ContextPtr Y>
+    inline auto operator-(X x, Y y) {
         return AddArr(x, -y);
     }
 

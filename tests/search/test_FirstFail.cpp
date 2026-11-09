@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <vector>
 #include "MiniGCP/search/FirstFail.hpp"
-#include "MiniGCP/state/Array.hpp"
 #include "MiniGCP/state/IntBitset.hpp"
+#include "MiniGCP/state/Ptr.hpp"
 #include "utils.hpp"
 
 using namespace cp;
@@ -13,7 +13,7 @@ TEST_CASE("FirstFail unfixed variable", "[FirstFail]") {
     IntBitset fixed(allocator, 1);
     IntBitset selected(allocator, 2);
     vector<IntBitset> variables{fixed, selected};
-    FirstFail<Array<IntBitset>> strategy(Array<IntBitset>(allocator, variables));
+    FirstFail<Ptr<IntBitset>> strategy(Ptr<IntBitset>(allocator, variables), 2);
 
     bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
         auto decision = strategy.split(ctx);
@@ -31,7 +31,7 @@ TEST_CASE("FirstFail smallest domain", "[FirstFail]") {
     IntBitset large(allocator, 10);
     IntBitset small(allocator, 3);
     vector<IntBitset> variables{large, small};
-    FirstFail strategy(Array<IntBitset>(allocator, variables));
+    FirstFail strategy(Ptr<IntBitset>(allocator, variables), 2);
 
     bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
         auto decision = strategy.split(ctx);
@@ -49,7 +49,7 @@ TEST_CASE("FirstFail all fixed", "[FirstFail]") {
     IntBitset first(allocator, 1);
     IntBitset second(allocator, 1);
     vector<IntBitset> variables{first, second};
-    FirstFail strategy(Array<IntBitset>(allocator, variables));
+    FirstFail strategy(Ptr<IntBitset>(allocator, variables), 2);
 
     bool d = runOnDevice<char>(allocator, 1, [=](Context ctx) {
         return strategy.split(ctx).has_value();
@@ -60,9 +60,9 @@ TEST_CASE("FirstFail all fixed", "[FirstFail]") {
 
 TEST_CASE("FirstFail concurrent few variables", "[FirstFail][concurrent]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     variables[5][allocator].removeAbove(5);
-    FirstFail strategy(variables);
+    FirstFail strategy(variables, 10);
 
     bool d = runOnDevice<char>(allocator, 16, [=](Context ctx) {
         auto decision = strategy.split(ctx);
@@ -77,9 +77,9 @@ TEST_CASE("FirstFail concurrent few variables", "[FirstFail][concurrent]") {
 
 TEST_CASE("FirstFail concurrent many variables", "[FirstFail][concurrent]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 100);
+    IntBitsetPtr variables(allocator, 10, 100);
     variables[5][allocator].removeAbove(5);
-    FirstFail strategy(variables);
+    FirstFail strategy(variables, 100);
 
     bool d = runOnDevice<char>(allocator, 16, [=](Context ctx) {
         auto decision = strategy.split(ctx);

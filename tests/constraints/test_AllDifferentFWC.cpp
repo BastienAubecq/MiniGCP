@@ -10,9 +10,9 @@ using namespace std;
 
 TEST_CASE("AllDifferentFWCSeq one fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     variables[5][allocator].fix(5);
-    AllDifferentFWCSeq constraint(allocator, variables);
+    AllDifferentFWCSeq constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -26,11 +26,11 @@ TEST_CASE("AllDifferentFWCSeq one fixed", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWCSeq few fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     variables[3][allocator].fix(2);
     variables[5][allocator].fix(5);
     variables[7][allocator].fix(8);
-    AllDifferentFWCSeq constraint(allocator, variables);
+    AllDifferentFWCSeq constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -46,8 +46,8 @@ TEST_CASE("AllDifferentFWCSeq few fixed", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWCSeq none fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
-    AllDifferentFWCSeq constraint(allocator, variables);
+    IntBitsetPtr variables(allocator, 10, 10);
+    AllDifferentFWCSeq constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -58,11 +58,11 @@ TEST_CASE("AllDifferentFWCSeq none fixed", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWCSeq all fixed", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     for (int i = 0; i < 10; i++) {
         variables[i][allocator].fix(i);
     }
-    AllDifferentFWCSeq constraint(allocator, variables);
+    AllDifferentFWCSeq constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -73,10 +73,10 @@ TEST_CASE("AllDifferentFWCSeq all fixed", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWCSeq inconsistency", "[AllDifferentFWCSeq]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     variables[3][allocator].fix(5);
     variables[7][allocator].fix(5);
-    AllDifferentFWCSeq constraint(allocator, variables);
+    AllDifferentFWCSeq constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -88,9 +88,9 @@ TEST_CASE("AllDifferentFWCSeq inconsistency", "[AllDifferentFWCSeq]") {
 
 TEST_CASE("AllDifferentFWC one fixed", "[AllDifferentFWC]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     variables[5][allocator].fix(5);
-    AllDifferentFWC constraint(allocator, variables);
+    AllDifferentFWC constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -104,11 +104,11 @@ TEST_CASE("AllDifferentFWC one fixed", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC few fixed", "[AllDifferentFWC]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     variables[3][allocator].fix(2);
     variables[5][allocator].fix(5);
     variables[7][allocator].fix(8);
-    AllDifferentFWC constraint(allocator, variables);
+    AllDifferentFWC constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -124,8 +124,8 @@ TEST_CASE("AllDifferentFWC few fixed", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC none fixed", "[AllDifferentFWC]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
-    AllDifferentFWC constraint(allocator, variables);
+    IntBitsetPtr variables(allocator, 10, 10);
+    AllDifferentFWC constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -136,11 +136,11 @@ TEST_CASE("AllDifferentFWC none fixed", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC all fixed", "[AllDifferentFWC]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     for (int i = 0; i < 10; i++) {
         variables[i][allocator].fix(i);
     }
-    AllDifferentFWC constraint(allocator, variables);
+    AllDifferentFWC constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -151,10 +151,10 @@ TEST_CASE("AllDifferentFWC all fixed", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC inconsistency", "[AllDifferentFWC]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     variables[3][allocator].fix(5);
     variables[7][allocator].fix(5);
-    AllDifferentFWC constraint(allocator, variables);
+    AllDifferentFWC constraint(allocator, variables, 10);
 
     DomainChange c = runOnDevice<DomainChange>(allocator, 1, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -166,11 +166,11 @@ TEST_CASE("AllDifferentFWC inconsistency", "[AllDifferentFWC]") {
 
 TEST_CASE("AllDifferentFWC concurrent few variables", "[AllDifferentFWC][concurrent]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 10, 10);
+    IntBitsetPtr variables(allocator, 10, 10);
     variables[3][allocator].fix(2);
     variables[5][allocator].fix(5);
     variables[7][allocator].fix(8);
-    AllDifferentFWC constraint(allocator, variables);
+    AllDifferentFWC constraint(allocator, variables, 10);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
         return constraint.propagate(ctx);
@@ -186,11 +186,11 @@ TEST_CASE("AllDifferentFWC concurrent few variables", "[AllDifferentFWC][concurr
 
 TEST_CASE("AllDifferentFWC concurrent many variables", "[AllDifferentFWC][concurrent]") {
     Allocator allocator;
-    IntBitsetArray variables(allocator, 100, 100);
+    IntBitsetPtr variables(allocator, 100, 100);
     for (int i = 0; i < 100; i += 10) {
         variables[i][allocator].fix(i);
     }
-    AllDifferentFWC constraint(allocator, variables);
+    AllDifferentFWC constraint(allocator, variables, 100);
 
     DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
         return constraint.propagate(ctx);

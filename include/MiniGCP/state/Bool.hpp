@@ -158,17 +158,16 @@ namespace cp {
 
 
     /**
-     * @brief Bool array that only stores the index of the first variable 
+     * @brief Pointer to boolean variables
      */
-    class BoolArray {
+    class BoolPtr {
     public:
         /**
          * @brief Allocate an array of boolean variables
          * @param allocator CP model allocator
          * @param count Number of variables in the array
-         * @return The array
          */
-        BoolArray(Allocator& allocator, uint32_t count) : count(count) {
+        BoolPtr(Allocator& allocator, uint32_t count) {
             index = allocator.allocate<HostBool, Scope::state>(count);
             HostBool* var = allocator.getData<HostBool, Scope::state>(index);
             for (uint32_t i = 0; i < count; i++) {
@@ -188,13 +187,8 @@ namespace cp {
             return (*this)[i];
         }
 
-        uint32_t size() const {
-            return count;
-        }
-
     private:
         uint32_t index;
-        uint32_t count;
     };
 
 }

@@ -67,7 +67,7 @@ namespace cp {
     template<std::convertible_to<int32_t> C>
     class Const {
     public:
-        explicit Const(C c) : c(c) {}
+        Const(C c) : c(c) {}
 
         ConstRef<C> operator[](Context ctx) const {
             return ConstRef(c);
@@ -76,32 +76,10 @@ namespace cp {
         ConstRef<C> operator[](Allocator& allocator) const {
             return ConstRef(c);
         }
-
-        Const& operator+=(int32_t o) requires std::same_as<C, int32_t> {
-            c += o;
-            return *this;
-        }
-
-        Const& operator-=(int32_t o) requires std::same_as<C, int32_t> {
-            c -= o;
-            return *this;
-        }
     
     private:
         [[no_unique_address]] C c;
     };
-
-    inline Const<int32_t> operator+(Const<int32_t> c, int32_t o) {
-        return c += o;
-    }
-
-    inline Const<int32_t> operator+(int32_t o, Const<int32_t> c) {
-        return c + o;
-    }
-
-    inline Const<int32_t> operator-(Const<int32_t> c, int32_t o) {
-        return c + -o;
-    }
 
 
     /**

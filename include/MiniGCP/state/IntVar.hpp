@@ -85,12 +85,12 @@ namespace cp {
      * @brief Integer variable array
      */
     template<typename T>
-    concept IntVarArray = sycl::is_device_copyable_v<T> && requires(T const& arr, Context ctx, Allocator& allocator, uint32_t i) {
+    concept IntVarPtr = sycl::is_device_copyable_v<T> && requires(T const& arr, Context ctx, Allocator& allocator, uint32_t i) {
         { auto(arr[ctx, i]) } -> IntVar;
         { auto(arr[allocator, i]) } -> IntVar;
     };
 
-    template<IntVarArray T>
+    template<IntVarPtr T>
     using IntVarIn = std::remove_reference_t<decltype(std::declval<T>()[std::declval<Context>(), 0])>;
 
 }
