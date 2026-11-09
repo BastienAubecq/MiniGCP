@@ -48,7 +48,7 @@ namespace cp {
             for (uint32_t i = ctx.item.get_local_id(0); i < n; i += ctx.item.get_local_range(0)) {
                 change |= NotEqual(x[ctx, i], y[ctx, i]).propagate(ctx);
             }
-            return groupChange(ctx.item.get_group(), change);
+            return change;
         }
 
     private:

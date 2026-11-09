@@ -133,7 +133,7 @@ namespace cp {
             }
             
             if (ctx.item.get_local_id(0) == 0) this->nFixed[ctx] = nFixed;
-            return groupChange(ctx.item.get_group(), change);
+            return change;
         }
 
     private:

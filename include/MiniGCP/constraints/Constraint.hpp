@@ -17,8 +17,7 @@ namespace cp {
         { T::parallel } -> std::convertible_to<bool>;
 
         /**
-         * @brief Propagate the constraint.
-         * If a group of thread is used, all threads must return the same value.
+         * @brief Propagate the constraint
          * @param ctx Current context
          * @return Whether any variable's domain was modified
          */

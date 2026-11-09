@@ -37,6 +37,8 @@ namespace cp {
         }
 
 
+        //uint64_t nPasses = 0;
+
         /**
          * @brief Propagate the constraints until a fixpoint or inconsistency is reached
          * @param ctx Current context
@@ -46,6 +48,7 @@ namespace cp {
             DomainChange change;
             do {
                 //if (ctx.item.get_local_id(0) == 0) printf("Propagate pass\n");
+                //nPasses++;
                 change = propagate(ctx);
                 if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) {
                     return true;
@@ -77,9 +80,6 @@ namespace cp {
                     for (uint32_t j = 0; j < std::get<i>(sizes); j++) {
                         auto constraint = std::get<i>(constraints)[j];
                         change |= constraint.propagate(ctx);
-                        if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) {
-                            return DomainChange::inconsistency;
-                        }
                     }
                 }
                 else {
@@ -88,11 +88,16 @@ namespace cp {
                         auto constraint = std::get<i>(constraints)[j];
                         change |= constraint.propagate(ctx);
                     }
-                    change = groupChange(ctx.item.get_group(), change);
-                    if ((change & DomainChange::inconsistency) == DomainChange::inconsistency) {
-                        return DomainChange::inconsistency;
-                    }
                 }
+
+                // Combine changes
+                if (sycl::any_of_group(ctx.item.get_group(), (change & DomainChange::changed) == DomainChange::changed)) {
+                    change |= DomainChange::changed;
+                }
+                if (sycl::any_of_group(ctx.item.get_group(), (change & DomainChange::inconsistency) == DomainChange::inconsistency)) {
+                    return DomainChange::inconsistency;
+                }
+
                 return change | propagate<i+1>(ctx);
             }
         }

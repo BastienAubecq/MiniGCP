@@ -28,6 +28,7 @@ namespace cp {
                         }
                     }
                 }
+                //if (ctx.item.get_local_id(0) == 0) printf("Passes: %ld\n", solver.constraints.nPasses);
             }); 
         }
     };

@@ -31,23 +31,6 @@ namespace cp {
         return change1;
     }
 
-
-    /**
-     * @brief Combine changes over a group of threads
-     * @param group The group
-     * @param change Current thread's change
-     * @return Combined changes
-     */
-    inline DomainChange groupChange(sycl::group<1> group, DomainChange change) {
-        if (sycl::any_of_group(group, (change & DomainChange::changed) == DomainChange::changed)) {
-            change |= DomainChange::changed;
-        }
-        if (sycl::any_of_group(group, (change & DomainChange::inconsistency) == DomainChange::inconsistency)) {
-            change |= DomainChange::inconsistency;
-        }
-        return change;
-    }
-
 }
 
 #endif
