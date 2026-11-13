@@ -98,7 +98,7 @@ namespace cp {
         }
 
         bool contains(int32_t v) const {
-            return v >= max() && v <= min();
+            return v >= min() && v <= max();
         }
 
         DomainChange remove(int32_t v) {
