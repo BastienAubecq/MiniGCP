@@ -2,7 +2,6 @@
 #define MINIGCP_SUM
 
 #include <utility>
-#include <span>
 #include "MiniGCP/Model.hpp"
 #include "MiniGCP/utils.hpp"
 #include "MiniGCP/solver/Context.hpp"
@@ -117,7 +116,7 @@ namespace cp {
         DomainChange propagate(Context ctx) const {
             uint32_t nFixed = this->nFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
-            int32_t& sumFixed = this->sumFixed[ctx];
+            int32_t sumFixed = this->sumFixed[ctx];
             
             // Get sum of min and max values of x
             int32_t sumMin = ctx.item.get_local_id(0) == 0 ? sumFixed : 0;
@@ -132,18 +131,13 @@ namespace cp {
                 // Swap fixed variables sequentially
                 std::optional<uint32_t> fixed;
                 do {
-                    std::optional<int32_t> v;
-                    std::optional<uint32_t> broadcast;
-                    if (i >= nFixed && i < n) {
-                        v = x[ctx, notFixed[i]][ctx].value();
-                        if (v) broadcast = i;
-                    }
-                    fixed = groupBroadcastAny(ctx, broadcast);
+                    bool broadcast = i >= nFixed && i < n && x[ctx, notFixed[i]][ctx].value();
+                    fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
 
                     if (fixed) {
-                        if (i == *fixed) {
-                            std::swap(notFixed[nFixed], notFixed[i]);
-                            sumFixed += *v;
+                        if (ctx.item.get_local_id(0) == 0) {
+                            std::swap(notFixed[nFixed], notFixed[*fixed]);
+                            sumFixed += *x[ctx, notFixed[nFixed]][ctx].value();
                         }
                         nFixed++;
                         sycl::group_barrier(ctx.item.get_group());
@@ -169,7 +163,10 @@ namespace cp {
                 change |= x[ctx, notFixed[i]][ctx].removeAbove(-(sumMin - min));
             }
 
-            if (ctx.item.get_local_id(0) == 0) this->nFixed[ctx] = nFixed;
+            if (ctx.item.get_local_id(0) == 0) {
+                this->nFixed[ctx] = nFixed;
+                this->sumFixed[ctx] = sumFixed;
+            }
             return change;
         }
 
@@ -183,12 +180,6 @@ namespace cp {
     };
 
 
-    /**
-     * @brief Add a sum constraint to a model and return its result
-     * @param model The model
-     * @param x Variables
-     * @return Sum of the variables
-     */
     template<Constraint... Constraints, IntVarPtr X>
     inline IntInterval sum(Model<Constraints...>& model, X x, uint32_t n) {
         IntInterval y(model);

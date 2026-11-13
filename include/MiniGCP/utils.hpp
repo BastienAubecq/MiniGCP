@@ -2,6 +2,7 @@
 #define MINIGCP_UTILS
 
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include "sycl/sycl.hpp"
 #include "MiniGCP/solver/Context.hpp"
@@ -15,10 +16,10 @@ namespace cp {
      * @param index Index of the value
      * @return Index of the minimum value in the group
      */
-    inline int32_t groupArgmin(Context ctx, int32_t value, int32_t index) {
+    inline uint32_t groupArgmin(Context ctx, int32_t value, uint32_t index) {
         int32_t minValue = sycl::reduce_over_group(ctx.item.get_group(), value, sycl::minimum<int32_t>());
-        uint32_t candidate = value == minValue ? static_cast<uint32_t>(index) : UINT32_MAX;
-        return static_cast<int32_t>(sycl::reduce_over_group(ctx.item.get_group(), candidate, sycl::minimum<uint32_t>()));
+        uint32_t candidate = value == minValue ? index : std::numeric_limits<uint32_t>::max();
+        return sycl::reduce_over_group(ctx.item.get_group(), candidate, sycl::minimum<uint32_t>());
     }
 
     /**
@@ -28,10 +29,10 @@ namespace cp {
      * @param index Index of the value
      * @return Index of the maximum value in the group
      */
-    inline int32_t groupArgmax(Context ctx, int32_t value, int32_t index) {
+    inline uint32_t groupArgmax(Context ctx, int32_t value, uint32_t index) {
         int32_t maxValue = sycl::reduce_over_group(ctx.item.get_group(), value, sycl::maximum<int32_t>());
-        uint32_t candidate = value == maxValue ? static_cast<uint32_t>(index) : 0;
-        return static_cast<int32_t>(sycl::reduce_over_group(ctx.item.get_group(), candidate, sycl::maximum<uint32_t>()));
+        uint32_t candidate = value == maxValue ? index : std::numeric_limits<uint32_t>::max();
+        return sycl::reduce_over_group(ctx.item.get_group(), candidate, sycl::minimum<uint32_t>());
     }
 
 

@@ -28,7 +28,7 @@ namespace cp {
 
         std::optional<FixRemove<IntVarIn<T>>> split(Context ctx) const {
             int32_t smallestSize = std::numeric_limits<int32_t>::max();
-            int32_t smallestIndex = -1;
+            uint32_t smallestIndex = -1;
             for (uint32_t i = ctx.item.get_local_id(0); i < n; i += ctx.item.get_local_range(0)) {
                 int32_t s = variables[ctx, i][ctx].size();
                 if (s > 1 && s < smallestSize) {
@@ -39,7 +39,7 @@ namespace cp {
             smallestIndex = groupArgmin(ctx, smallestSize, smallestIndex);
             if (smallestIndex == -1) return {};
             IntVarIn<T> smallestVar = variables[ctx, smallestIndex];
-            //if (ctx.item.get_local_id(0) == 0) printf("Split %d-%d\n", smallestVar.index, ctx[smallestVar].min());
+            //if (ctx.item.get_local_id(0) == 0) sycl::ext::oneapi::experimental::printf("Split %d-%d\n", smallestVar.index / 8, smallestVar[ctx].min());
             return FixRemove(smallestVar, smallestVar[ctx].min());
         }
 

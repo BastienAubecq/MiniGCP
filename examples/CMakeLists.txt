@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
-set(CMAKE_CXX_COMPILER acpp)
+
+if(NOT DEFINED CMAKE_CXX_COMPILER)
+    set(CMAKE_CXX_COMPILER acpp)
+endif()
+
 project(MiniGCP_examples CXX)
 
 set(CMAKE_CXX_STANDARD 23)

@@ -7,18 +7,18 @@
 #include "TSP.cpp"
 
 
-static void requireFeasible(TSPInstance const& instance, int32_t objective, std::span<int32_t const> solution) {
-    REQUIRE(solution.size() == instance.n);
-    vector<bool> visited(instance.n, false);
+static void requireFeasible(TSP const& tsp, int32_t objective, std::span<int32_t const> solution) {
+    REQUIRE(solution.size() == tsp.n);
+    vector<bool> visited(tsp.n, false);
     uint32_t curr = 0;
     int32_t cost = 0;
-    for (uint32_t i = 0; i < instance.n; i++) {
+    for (uint32_t i = 0; i < tsp.n; i++) {
         uint32_t next = solution[curr];
         REQUIRE(next >= 0);
-        REQUIRE(next < instance.n);
+        REQUIRE(next < tsp.n);
         REQUIRE_FALSE(visited[next]);
         visited[next] = true;
-        cost += instance.distance(curr, next);
+        cost += tsp.distance(curr, next);
         curr = next;
     }
     REQUIRE(objective == cost);
@@ -27,18 +27,18 @@ static void requireFeasible(TSPInstance const& instance, int32_t objective, std:
 
 TEST_CASE("TSP feasible", "[TSP][example]") {
     for (uint32_t n = 10; n <= 100; n += 5) {
-        TSPInstance instance(n, 100);
-        auto solver = getTSPSolver(instance, testParams);
+        TSP tsp(n, 100);
+        auto solver = tsp.solver(testParams);
         solver.solve([](SearchStatistics stats) { return stats.nSolutions > 0 && stats.nNodes >= 10000; });
 
         REQUIRE(solver.getStatistics().nSolutions > 0);
-        requireFeasible(instance, solver.getStatistics().objective, solver.getSolution());
+        requireFeasible(tsp, solver.getStatistics().objective, solver.getSolution());
     }
 }
 
 TEST_CASE("TSP statistics", "[TSP][example]") {
-    TSPInstance instance("../../data/TSP/tsp_15.txt");
-    auto solver = getTSPSolver(instance, testParams);
+    TSP tsp("../../data/TSP/tsp_15.txt");
+    auto solver = tsp.solver(testParams);
     solver.solve(noLimit);
     SearchStatistics stats = solver.getStatistics();
 

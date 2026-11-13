@@ -20,7 +20,10 @@
   - `AllDifferentFWC` (work-group parallel) & `AllDifferentFWCSeq` (single-thread): Forward-checking `AllDifferent`.
   - `Circuit` (work-group parallel) & `CircuitSeq` (single-thread): Subtour elimination over successor variables.
   - `Element1D`: 1D array indexing constraint $t[y] = z$ with sorted index bounds filtering.
-  - `NotEqual` & `NotEqualVec`: Binary inequality $x \neq y$ and vectorized inequality over variable views.
+  - `IsEqual` : Binary equality $x = y \iff r$.
+  - `IsLess` : Binary comparison $x < y \iff r$.
+  - `IsOr` : Binary OR $x | y \iff r$.
+  - `Maximum` (work-group parallel) & `MaximumSeq` (single-thread): Bound-consistent maximum $\max_i x_i = y$.
   - `Sum` (work-group parallel) & `SumSeq` (single-thread): Linear bound-consistent sum $\sum_i x_i = y$.
 - **Search & Solvers (`include/MiniGCP/search/`, `include/MiniGCP/solver/`)**:
   - `FirstFail`: Parallel work-group reduction (`groupArgmin`) selecting the unfixed variable with the smallest domain and branching with `FixRemove` ($x = \min(D(x))$ left, $x \neq \min(D(x))$ right).
@@ -45,7 +48,7 @@ Alternatively, any other SYCL compiler can be used, for example [Intel oneAPI DP
 ## Building & Running the Examples
 
 The `examples/` directory includes:
-- **`NQueens`** (`examples/NQueens.cpp`): Solves the $N$-Queens problem (includes `AllDifferentFWC`, binary `NotEqual`, and vectorized `NotEqualVec` formulations).
+- **`NQueens`** (`examples/NQueens.cpp`): Solves the $N$-Queens problem (includes `AllDifferentFWC`, and binary `NotEqual`).
 - **`TSP`** (`examples/TSP.cpp`): Solves the Travelling Salesperson Problem to optimality using `AllDifferentFWC`, `Circuit`, `Element1D`, and `Sum`. Benchmark instances are provided in `data/TSP/`.
 
 ```bash

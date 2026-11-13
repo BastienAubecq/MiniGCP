@@ -4,6 +4,8 @@
 #include <functional>
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
+#include "MiniGCP/state/Add.hpp"
+#include "MiniGCP/state/Const.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
 #include "MiniGCP/state/IntVar.hpp"
 #include "MiniGCP/state/Ptr.hpp"
@@ -13,7 +15,7 @@ namespace cp {
     template<IntVarRef T>
     class NegRef {
     public:
-        explicit NegRef(T x) : x(x) {}
+        T x;
 
         int32_t min() const {
             return -x.max();
@@ -35,24 +37,21 @@ namespace cp {
             return x.contains(-v);
         }
 
-        DomainChange remove(int32_t v) const {
+        DomainChange remove(int32_t v) {
             return x.remove(-v);
         }
 
-        DomainChange fix(int32_t v) const {
+        DomainChange fix(int32_t v) {
             return x.fix(-v);
         }
 
-        DomainChange removeBelow(int32_t v) const {
+        DomainChange removeBelow(int32_t v) {
             return x.removeAbove(-v);
         }
 
-        DomainChange removeAbove(int32_t v) const {
+        DomainChange removeAbove(int32_t v) {
             return x.removeBelow(-v);
         }
-
-    private:
-        T x;
     };
 
 
@@ -63,18 +62,15 @@ namespace cp {
     template<IntVar T>
     class Neg {
     public:
-        explicit Neg(T x) : x(x) {}
+        T x;
 
         auto operator[](Context ctx) const {
-            return NegRef(x[ctx]);
+            return NegRef<decltype(x[ctx])>(x[ctx]);
         }
 
         auto operator[](Allocator& allocator) const {
-            return NegRef(x[allocator]);
+            return NegRef<decltype(x[allocator])>(x[allocator]);
         }
-
-    private:
-        T x;
     };
 
     template<IntVar T>
@@ -90,7 +86,7 @@ namespace cp {
     template<ContextPtr T>
     class NegVec {
     public:
-        explicit NegVec(T x) : x(x) {}
+        [[no_unique_address]] T x;
 
         auto operator[](Context ctx, uint32_t i) const {
             return -x[ctx, i];
@@ -99,14 +95,35 @@ namespace cp {
         auto operator[](Allocator& allocator, uint32_t i) const {
             return -x[allocator, i];
         }
-
-    private:
-        [[no_unique_address]] T x;
     };
 
     template<ContextPtr T>
     inline NegVec<T> operator-(T x) {
         return NegVec(x);
+    }
+
+
+    template<IntVar T>
+    class Not : public Add<Neg<T>, Lit<1>> {
+    public:
+        Not(T x) : Add<Neg<T>, Lit<1>>(Neg(x), Lit<1>()) {}
+    };
+
+    template<IntVar T>
+    inline Not<T> operator~(T x) {
+        return Not(x);
+    }
+
+
+    template<ContextPtr T>
+    class NotVec : public AddVec<NegVec<T>, Same<Lit<1>>> {
+    public:
+        NotVec(T x) : AddVec<NegVec<T>, Same<Lit<1>>>(NegVec(x), Same(Lit<1>())) {}
+    };
+
+    template<ContextPtr T>
+    inline NotVec<T> operator~(T x) {
+        return NotVec(x);
     }
 
 }

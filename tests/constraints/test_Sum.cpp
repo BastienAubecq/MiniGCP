@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <vector>
 #include "MiniGCP/constraints/Sum.hpp"
+#include "MiniGCP/state/Bool.hpp"
 #include "MiniGCP/state/IntInterval.hpp"
+#include "MiniGCP/state/Mul.hpp"
 #include "MiniGCP/state/Ptr.hpp"
 #include "utils.hpp"
 

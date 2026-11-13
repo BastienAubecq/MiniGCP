@@ -90,7 +90,7 @@ namespace cp {
     template<typename T>
     class Same {
     public:
-        explicit Same(T x) : x(x) {}
+        [[no_unique_address]] T x;
 
         T operator[](Context, uint32_t) const {
             return x;
@@ -99,9 +99,6 @@ namespace cp {
         T operator[](Allocator&, uint32_t) const {
             return x;
         }
-
-    private:
-        [[no_unique_address]] T x;
     };
 
 

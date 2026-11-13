@@ -10,10 +10,11 @@
 
 namespace cp {
 
-    template<IntVarRef V, std::convertible_to<int32_t> C>
+    template<IntVarRef V>
     class AddRef {
     public:
-        AddRef(V x, C y) : x(x), y(y) {}
+        V x;
+        int32_t y;
 
         int32_t min() const {
             return x.min() + y;
@@ -37,25 +38,21 @@ namespace cp {
             return x.contains(v - y);
         }
 
-        DomainChange remove(int32_t v) const {
+        DomainChange remove(int32_t v) {
             return x.remove(v - y);
         }
 
-        DomainChange fix(int32_t v) const {
+        DomainChange fix(int32_t v) {
             return x.fix(v - y);
         }
 
-        DomainChange removeBelow(int32_t v) const {
+        DomainChange removeBelow(int32_t v) {
             return x.removeBelow(v - y);
         }
 
-        DomainChange removeAbove(int32_t v) const {
+        DomainChange removeAbove(int32_t v) {
             return x.removeAbove(v - y);
         }
-
-    private:
-        V x;
-        C y;
     };
 
 
@@ -67,19 +64,16 @@ namespace cp {
     template<IntVar V, std::convertible_to<int32_t> C>
     class Add {
     public:
-        Add(V x, C y) : x(x), y(y) {}
+        V x;
+        [[no_unique_address]] C y;
 
         auto operator[](Context ctx) const {
-            return AddRef(x[ctx], y);
+            return AddRef<decltype(x[ctx])>(x[ctx], y);
         }
 
         auto operator[](Allocator& allocator) const {
-            return AddRef(x[allocator], y);
+            return AddRef<decltype(x[allocator])>(x[allocator], y);
         }
-
-    private:
-        V x;
-        [[no_unique_address]] C y;
     };
 
     template<IntVar V, std::convertible_to<int32_t> C>
@@ -106,7 +100,8 @@ namespace cp {
     template<ContextPtr X, ContextPtr Y>
     class AddVec {
     public:
-        AddVec(X x, Y y = {}) : x(x), y(y) {}
+        [[no_unique_address]] X x;
+        [[no_unique_address]] Y y;
 
         auto operator[](Context ctx, uint32_t i) const {
             return x[ctx, i] + y[ctx, i];
@@ -115,10 +110,6 @@ namespace cp {
         auto operator[](Allocator& allocator, uint32_t i) const {
             return x[allocator, i] + y[allocator, i];
         }
-
-    private:
-        [[no_unique_address]] X x;
-        [[no_unique_address]] Y y;
     };
 
     template<ContextPtr X, ContextPtr Y>

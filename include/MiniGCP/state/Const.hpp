@@ -10,10 +10,9 @@
 
 namespace cp {
 
-    template<std::convertible_to<int32_t> C>
     class ConstRef {
     public:
-        explicit ConstRef(C c) : c(c) {}
+        explicit ConstRef(int32_t c) : c(c) {}
 
         int32_t min() const {
             return c;
@@ -56,7 +55,7 @@ namespace cp {
         }
 
     private:
-        C c;
+        int32_t c;
     };
 
 
@@ -69,11 +68,11 @@ namespace cp {
     public:
         Const(C c) : c(c) {}
 
-        ConstRef<C> operator[](Context ctx) const {
+        ConstRef operator[](Context ctx) const {
             return ConstRef(c);
         }
 
-        ConstRef<C> operator[](Allocator& allocator) const {
+        ConstRef operator[](Allocator& allocator) const {
             return ConstRef(c);
         }
     
@@ -88,11 +87,11 @@ namespace cp {
     template<int32_t c>
     class Lit {
     public:
-        operator int32_t() {
+        operator int32_t() const {
             return c;
         }
 
-        Lit<-c> operator-() {
+        Lit<-c> operator-() const {
             return {};
         }
     };

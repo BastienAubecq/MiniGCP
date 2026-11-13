@@ -179,7 +179,7 @@ namespace cp {
             return *allocator.getData<HostIntInterval, Scope::state>(index);
         }
 
-    private:
+    public:
         uint32_t index;
     };
 

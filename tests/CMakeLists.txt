@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
-set(CMAKE_CXX_COMPILER acpp)
+
+if(NOT DEFINED CMAKE_CXX_COMPILER)
+    set(CMAKE_CXX_COMPILER acpp)
+endif()
+
 project(MiniGCP_tests CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -21,7 +25,10 @@ include(Catch)
 add_test_file(test_AllDifferentFWC constraints/test_AllDifferentFWC.cpp)
 add_test_file(test_Circuit constraints/test_Circuit.cpp)
 add_test_file(test_Element1D constraints/test_Element1D.cpp)
-add_test_file(test_NotEqual constraints/test_NotEqual.cpp)
+add_test_file(test_IsEqual constraints/test_IsEqual.cpp)
+add_test_file(test_IsLess constraints/test_IsLess.cpp)
+add_test_file(test_IsOr constraints/test_IsOr.cpp)
+add_test_file(test_Maximum constraints/test_Maximum.cpp)
 add_test_file(test_Sum constraints/test_Sum.cpp)
 add_test_file(test_NQueens examples/test_NQueens.cpp)
 add_test_file(test_TSP examples/test_TSP.cpp)
