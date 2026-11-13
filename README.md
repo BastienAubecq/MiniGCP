@@ -1,6 +1,6 @@
 # MiniGCP
 
-**MiniGCP** is a header-only C++23 Constraint Programming (CP) solver built on **SYCL** ([AdaptiveCpp](https://github.com/AdaptiveCpp/AdaptiveCpp)) for execution on both GPUs (NVIDIA, AMD, Intel, and Apple Silicon via Metal) and CPUs (via OpenMP).
+**MiniGCP** is a generic header-only C++23 Constraint Programming (CP) solver built on [SYCL](https://www.khronos.org/sycl/) for execution on both GPUs (e.g. NVIDIA, AMD, Intel, Apple Silicon) and CPUs (via OpenMP or OpenCL).
 
 ---
 
@@ -30,55 +30,15 @@
 
 ---
 
-## Prerequisites & Installation
+## Prerequisites
 
 MiniGCP requires:
 - A C++23-capable LLVM/Clang toolchain
-- [AdaptiveCpp](https://github.com/AdaptiveCpp/AdaptiveCpp) (`acpp`) with its generic SSCP compiler enabled
+- [AdaptiveCpp](https://github.com/AdaptiveCpp/AdaptiveCpp) (`acpp`) with its generic SSCP compiler enabled. See [Building & Installing](https://github.com/AdaptiveCpp/AdaptiveCpp/blob/develop/doc/installing.md) for detailed installation instructions depending on your target platform.
 - [CMake](https://cmake.org/) ($\ge 3.20$)
 - [Catch2](https://github.com/catchorg/Catch2) (v3, for unit tests)
 
-### macOS (Apple Silicon GPU via Metal + OpenMP CPU)
-
-AdaptiveCpp includes an experimental **Metal backend** that compiles SYCL kernels to LLVM IR at compile time and JIT-translates them to Metal Shading Language (MSL) at runtime for Apple Silicon GPUs (M1/M2/M3/M4).
-
-1. **Install dependencies via Homebrew**:
-   ```bash
-   brew install cmake llvm@21 lld@21 libomp catch2
-   ```
-
-2. **Build and install AdaptiveCpp with the Metal backend**:
-   ```bash
-   git clone https://github.com/AdaptiveCpp/AdaptiveCpp.git /tmp/AdaptiveCpp
-   mkdir -p /tmp/AdaptiveCpp/build && cd /tmp/AdaptiveCpp/build
-
-   cmake \
-     -DCMAKE_INSTALL_PREFIX=/opt/homebrew \
-     -DLLVM_DIR=/opt/homebrew/opt/llvm@21/lib/cmake/llvm \
-     -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm@21/bin/clang \
-     -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm@21/bin/clang++ \
-     -DACPP_LLD_PATH=/opt/homebrew/opt/lld@21/bin/ld64.lld \
-     -DCMAKE_OSX_SYSROOT="$(xcrun --show-sdk-path)" \
-     -DACPP_COMPILER_FEATURE_PROFILE=full \
-     -DWITH_METAL_BACKEND=ON \
-     -DWITH_OPENCL_BACKEND=OFF \
-     ..
-
-   make -j$(sysctl -n hw.ncpu) install
-   ```
-   *(Note: If `metal-cpp` is not pre-installed, AdaptiveCpp's CMake configuration automatically fetches Apple's `metal-cpp` headers).*
-
-3. **Verify detected CPU & Apple GPU backends**:
-   ```bash
-   acpp-info
-   ```
-   You should see both backends listed:
-   ```text
-   Loaded backend 0: OpenMP
-     Found device: AdaptiveCpp OpenMP host device
-   Loaded backend 1: Metal
-     Found device: Apple M3 Pro
-   ```
+Alternatively, any other SYCL compiler can be used, for example [Intel oneAPI DPC++](https://www.intel.com/content/www/us/en/developer/tools/oneapi/dpc-compiler.html).
 
 ---
 
