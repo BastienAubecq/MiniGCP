@@ -77,7 +77,7 @@ namespace cp {
         }
 
         int32_t max() const {
-            return b & 2;
+            return b > 1;
         }
 
         int32_t size() const {

@@ -17,7 +17,7 @@ namespace cp {
         void solve(SearchLimit auto limit) {
             uint32_t epsDepth = this->epsDepth;
 
-            this->parallelFor(this->solver, this->params.nGroups, this->params.groupSize, [=](Context ctx, auto solver) {
+            this->parallelFor(this->solver, this->params.nGroups, [=](Context ctx, auto solver) {
                 bool hasSubproblem = !solver.firstSearch;
                 solver.firstSearch = false;
 

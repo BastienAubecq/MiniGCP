@@ -91,7 +91,7 @@ int main(int argc, char const* const* argv) {
 
     uint32_t n = std::stoi(argv[1]);
     uint32_t limit = argc == 3 ? std::stoi(argv[2]) : UINT32_MAX;
-    DeviceParams<1> params(sycl::cpu_selector_v, 1);
+    DeviceParams<64> params(sycl::gpu_selector_v, 1);
     auto solver = getNQueensVectorSolver(n, params);
     solver.solve([=](SearchStatistics stats) { return stats.nSolutions >= limit; });
 

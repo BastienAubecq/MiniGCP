@@ -16,8 +16,9 @@ namespace cp {
      * @return Index of the minimum value in the group
      */
     inline int32_t groupArgmin(Context ctx, int32_t value, int32_t index) {
-        int64_t packed = static_cast<int64_t>(value) << 32 | static_cast<uint32_t>(index);
-        return static_cast<int32_t>(sycl::reduce_over_group(ctx.item.get_group(), packed, sycl::minimum<int64_t>()));
+        int32_t minValue = sycl::reduce_over_group(ctx.item.get_group(), value, sycl::minimum<int32_t>());
+        uint32_t candidate = value == minValue ? static_cast<uint32_t>(index) : UINT32_MAX;
+        return static_cast<int32_t>(sycl::reduce_over_group(ctx.item.get_group(), candidate, sycl::minimum<uint32_t>()));
     }
 
     /**
@@ -28,8 +29,9 @@ namespace cp {
      * @return Index of the maximum value in the group
      */
     inline int32_t groupArgmax(Context ctx, int32_t value, int32_t index) {
-        int64_t packed = static_cast<int64_t>(value) << 32 | static_cast<uint32_t>(index);
-        return static_cast<int32_t>(sycl::reduce_over_group(ctx.item.get_group(), packed, sycl::maximum<int64_t>()));
+        int32_t maxValue = sycl::reduce_over_group(ctx.item.get_group(), value, sycl::maximum<int32_t>());
+        uint32_t candidate = value == maxValue ? static_cast<uint32_t>(index) : 0;
+        return static_cast<int32_t>(sycl::reduce_over_group(ctx.item.get_group(), candidate, sycl::maximum<uint32_t>()));
     }
 
 

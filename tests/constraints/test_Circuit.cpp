@@ -136,9 +136,9 @@ TEST_CASE("Circuit concurrent few variables", "[Circuit][concurrent]") {
     }
     Circuit constraint(allocator, x, 10);
 
-    DomainChange c = runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
+    DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
         return constraint.propagate(ctx);
-    })[0];
+    }));
 
     REQUIRE(c == DomainChange::changed);
     for (int i = 0; i < 9; i++) {
@@ -155,9 +155,9 @@ TEST_CASE("Circuit concurrent many variables", "[Circuit][concurrent]") {
     }
     Circuit constraint(allocator, x, 100);
 
-    DomainChange c = runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
+    DomainChange c = combineChanges(runOnDevice<DomainChange>(allocator, 16, [=](Context ctx) {
         return constraint.propagate(ctx);
-    })[0];
+    }));
 
     REQUIRE(c == DomainChange::changed);
     for (int i = 0; i < 99; i++) {
