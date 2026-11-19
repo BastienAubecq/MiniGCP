@@ -114,7 +114,7 @@ int main(int argc, char const* const* argv) {
     }
 
     RCPSP rcpsp(argv[1]);
-    DeviceParams<128> params(sycl::gpu_selector_v, 1);
+    DeviceParams<1, false, false> params(sycl::cpu_selector_v, 1);
     auto solver = rcpsp.binarySolver(params);
     solver.solve(noLimit);
 

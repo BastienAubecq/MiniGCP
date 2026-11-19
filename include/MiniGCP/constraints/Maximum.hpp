@@ -141,7 +141,7 @@ namespace cp {
                     fixed = groupBroadcastAny(ctx, broadcast ? std::optional(i) : std::nullopt);
 
                     if (fixed) {
-                        if (i == *fixed) {
+                        if (ctx.item.get_local_id(0) == 0) {
                             std::swap(notFixed[nFixed], notFixed[*fixed]);
                             maxFixed = std::max(maxFixed, x[ctx, notFixed[nFixed]][ctx].max());
                         }
@@ -153,21 +153,20 @@ namespace cp {
             maxMin = sycl::reduce_over_group(ctx.item.get_group(), maxMin, sycl::maximum<int32_t>());
             maxMax = sycl::reduce_over_group(ctx.item.get_group(), maxMax, sycl::maximum<int32_t>());
 
-            // Update y
             if (ctx.item.get_local_id(0) == 0) {
+                // Update y
                 change |= y[ctx].removeBelow(maxMin);
                 change |= y[ctx].removeAbove(maxMax);
-            }
 
-            // y = x_i if x_i is the only variable inside the range of y
-            if (ctx.item.get_local_id(0) == 0 && nFixed == n - 1 && maxFixed < y[ctx].min()) {
-                change |= x[ctx, notFixed[n - 1]][ctx].removeBelow(yMin);
-            }
+                // y = x_i if x_i is the only variable inside the range of y
+                if (nFixed == n - 1 && maxFixed < y[ctx].min()) {
+                    change |= x[ctx, notFixed[n - 1]][ctx].removeBelow(yMin);
+                }
 
-            if (ctx.item.get_local_id(0) == 0) {
                 this->nFixed[ctx] = nFixed;
                 this->maxFixed[ctx] = maxFixed;
             }
+
             return change;
         }
 
