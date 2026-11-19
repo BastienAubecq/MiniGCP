@@ -11,16 +11,16 @@
 namespace cp {
 
     /**
-     * @brief Constraint : the graph represented by the successor of each node doesn't contain any cycles that don't involve all nodes.
-     * Sequential implementation.
+     * @brief Constraint : the graph represented by the successor of each node doesn't contain any cycles that don't involve all nodes
      * @tparam Succ Type of the successors
+     * @tparam parallel Whether to parallelize the propagation.
      */
-    template<IntVarPtr Succ>
-    class CircuitSeq {
+    template<IntVarPtr Succ, bool _parallel = true>
+    class Circuit {
     public:
-        constexpr static bool parallel = false;
+        constexpr static bool parallel = _parallel;
 
-        CircuitSeq(Allocator& allocator, Succ succ, uint32_t n) :
+        Circuit(Allocator& allocator, Succ succ, uint32_t n) :
             succ(succ), n(n),
             notFixed(allocator, n),
             pathEnd(allocator, n),
@@ -34,7 +34,8 @@ namespace cp {
             }
         }
 
-        DomainChange propagate(Context ctx) const {
+
+        DomainChange propagate(Context ctx) const requires (!parallel) {
             uint32_t nFixed = this->nFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
             uint32_t* pathEnd = this->pathEnd[ctx];
@@ -59,41 +60,8 @@ namespace cp {
             return change;
         }
 
-    private:
-        Succ succ;
-        uint32_t n;
-        Ptr<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
-        Ptr<uint32_t, Scope::state> pathEnd; // Other end of the path that starts at each node
-        Ref<uint32_t, Scope::state> nFixed; // Number of unfixed variables
-    };
 
-
-
-    /**
-     * @brief Constraint : the graph represented by the successor of each node doesn't contain any cycles that don't involve all nodes.
-     * Parallel implementation.
-     * @tparam Succ Type of the successors
-     */
-    template<IntVarPtr Succ>
-    class Circuit {
-    public:
-        constexpr static bool parallel = true;
-
-        Circuit(Allocator& allocator, Succ succ, uint32_t n) :
-            succ(succ), n(n),
-            notFixed(allocator, n),
-            pathEnd(allocator, n),
-            nFixed(allocator, 0) {
-            for (uint32_t i = 0; i < n; i++) {
-                notFixed[allocator, i] = i;
-                pathEnd[allocator, i] = i;
-                succ[allocator, i][allocator].removeBelow(0);
-                succ[allocator, i][allocator].removeAbove(n - 1);
-                succ[allocator, i][allocator].remove(i);
-            }
-        }
-
-        DomainChange propagate(Context ctx) const {
+        DomainChange propagate(Context ctx) const requires parallel {
             uint32_t nFixed = this->nFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
             uint32_t* pathEnd = this->pathEnd[ctx];
@@ -136,6 +104,7 @@ namespace cp {
             return change;
         }
 
+
     private:
         Succ succ;
         uint32_t n;
@@ -143,6 +112,10 @@ namespace cp {
         Ptr<uint32_t, Scope::state> pathEnd; // Other end of the path that starts at each node
         Ref<uint32_t, Scope::state> nFixed; // Number of unfixed variables
     };
+
+
+    template<IntVarPtr Succ>
+    using CircuitSeq = Circuit<Succ, false>;
 
 }
 

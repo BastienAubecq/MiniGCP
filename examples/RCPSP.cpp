@@ -65,7 +65,7 @@ public:
             IsLessOrEqual<IntInterval, Const<int32_t>, Bool>,
             IsLess<Const<int32_t>, IntInterval, Bool>,
             IsAnd<Bool, Bool, Bool>,
-            Sum<MulVec<BoolPtr, Ptr<int32_t>>, IntInterval>,
+            SumSeq<MulVec<BoolPtr, Ptr<int32_t>>, IntInterval>,
             LessOrEqual<IntInterval, Const<int32_t>>,
             Maximum<AddVec<IntIntervalPtr, Ptr<int32_t>>, IntInterval>
         > model;
@@ -86,11 +86,14 @@ public:
             }
             for (int32_t i = 0; i < nResources; i++) {
                 span<int32_t const> consumptionsSpan(consumptions.data() + i * nActivities, nActivities);
-                model.constraint(sum(model, overlap * Ptr(model, consumptionsSpan), nActivities) <= Const(capacities[i]));
+                IntInterval usage(model);
+                model.constraint(SumSeq(model, overlap * Ptr(model, consumptionsSpan), nActivities, usage));
+                model.constraint(usage <= Const(capacities[i]));
             }
         }
         span<int32_t const> durationsSpan(durations.data(), nActivities);
-        IntInterval objective = maximum(model, start + Ptr(model, durationsSpan), nActivities);
+        IntInterval objective(model);
+        model.constraint(Maximum(model, start + Ptr(model, durationsSpan), nActivities, objective));
 
         FirstFail strategy(start, nActivities);
         return DFSSolver(model, Minimization(objective), start, nActivities, strategy, params);

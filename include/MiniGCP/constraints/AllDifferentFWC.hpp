@@ -11,16 +11,17 @@
 namespace cp {
 
     /**
-     * @brief Constraint : x_i != x_j for all i, j.
-     * Forward checking filtering, sequential implementation.
+     * @brief Constraint : xi != xj for all i, j.
+     * Forward checking filtering.
      * @tparam X Type of x
+     * @tparam parallel Whether to parallelize the propagation.
      */
-    template<IntVarPtr X>
-    class AllDifferentFWCSeq {
+    template<IntVarPtr X, bool _parallel = true>
+    class AllDifferentFWC {
     public:
-        constexpr static bool parallel = false;
+        constexpr static bool parallel = _parallel;
 
-        AllDifferentFWCSeq(Allocator& allocator, X x, uint32_t n) :
+        AllDifferentFWC(Allocator& allocator, X x, uint32_t n) :
             x(x), n(n),
             notFixed(allocator, n),
             nFixed(allocator, 0) {
@@ -29,7 +30,8 @@ namespace cp {
             }
         }
 
-        DomainChange propagate(Context ctx) const {
+
+        DomainChange propagate(Context ctx) const requires (!parallel) {
             uint32_t nFixed = this->nFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
             DomainChange change = DomainChange::none;
@@ -48,35 +50,8 @@ namespace cp {
             return change;
         }
 
-    private:
-        X x;
-        uint32_t n;
-        Ptr<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
-        Ref<uint32_t, Scope::state> nFixed; // Number of unfixed variables
-    };
 
-
-
-    /**
-     * @brief Constraint : xi != xj for all i, j.
-     * Forward checking filtering, parallel implementation.
-     * @tparam X Type of x
-     */
-    template<IntVarPtr X>
-    class AllDifferentFWC {
-    public:
-        constexpr static bool parallel = true;
-
-        AllDifferentFWC(Allocator& allocator, X x, uint32_t n) :
-            x(x), n(n),
-            notFixed(allocator, n),
-            nFixed(allocator, 0) {
-            for (uint32_t i = 0; i < n; i++) {
-                notFixed[allocator, i] = i;
-            }
-        }
-
-        DomainChange propagate(Context ctx) const {
+        DomainChange propagate(Context ctx) const requires parallel {
             uint32_t nFixed = this->nFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
             DomainChange change = DomainChange::none;
@@ -107,12 +82,17 @@ namespace cp {
             return change;
         }
 
+
     private:
         X x;
         uint32_t n;
         Ptr<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
         Ref<uint32_t, Scope::state> nFixed; // Number of unfixed variables
     };
+
+
+    template<IntVarPtr X>
+    using AllDifferentFWCSeq = AllDifferentFWC<X, false>;
 
 }
 

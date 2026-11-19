@@ -78,7 +78,8 @@ public:
             span<int32_t const> distancesSpan(distances.data() + i * n, n);
             model.constraint(Element1D(model, Ptr(model, distancesSpan), n, succ[i], cost[i]));
         }
-        IntInterval objective = sum(model, cost, n);
+        IntInterval objective(model);
+        model.constraint(Sum(model, cost, n, objective));
 
         FirstFail strategy(succ, n);
         return DFSSolver(model, Minimization(objective), succ, n, strategy, params);

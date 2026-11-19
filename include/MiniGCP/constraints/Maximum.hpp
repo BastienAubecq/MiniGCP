@@ -15,16 +15,17 @@ namespace cp {
 
     /**
      * @brief Constraint : max_i x_i = y.
-     * Bound consistency, sequential implementation.
+     * Bound consistency.
      * @tparam X Type of x
      * @tparam Y Type of y
+     * @tparam parallel Whether to parallelize the propagation.
      */
-    template<IntVarPtr X, IntVar Y>
-    class MaximumSeq {
+    template<IntVarPtr X, IntVar Y, bool _parallel = true>
+    class Maximum {
     public:
-        constexpr static bool parallel = false;
+        constexpr static bool parallel = _parallel;
 
-        MaximumSeq(Allocator& allocator, X x, uint32_t n, Y y) :
+        Maximum(Allocator& allocator, X x, uint32_t n, Y y) :
             x(x), n(n), y(y),
             notFixed(allocator, n),
             nFixed(allocator, 0),
@@ -40,7 +41,8 @@ namespace cp {
             y[allocator].removeAbove(maxMax);
         }
 
-        DomainChange propagate(Context ctx) const {
+
+        DomainChange propagate(Context ctx) const requires (!parallel) {
             uint32_t nFixed = this->nFixed[ctx];
             int32_t maxFixed = this->maxFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
@@ -77,44 +79,8 @@ namespace cp {
             return change;
         }
 
-    private:
-        X x;
-        uint32_t n;
-        Y y;
-        Ptr<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
-        Ref<uint32_t, Scope::state> nFixed; // Number of unfixed variables
-        Ref<int32_t, Scope::state> maxFixed; // Max of the unfixed variables
-    };
 
-
-    /**
-     * @brief Constraint : max_i x_i = y.
-     * Bound consistency, parallel implementation.
-     * @tparam X Type of x
-     * @tparam Y Type of y
-     */
-    template<IntVarPtr X, IntVar Y>
-    class Maximum {
-    public:
-        constexpr static bool parallel = true;
-
-        Maximum(Allocator& allocator, X x, uint32_t n, Y y) :
-            x(x), n(n), y(y),
-            notFixed(allocator, n),
-            nFixed(allocator, 0),
-            maxFixed(allocator, std::numeric_limits<int32_t>::min()) {
-            int32_t maxMin = std::numeric_limits<int32_t>::min();
-            int32_t maxMax = std::numeric_limits<int32_t>::min();
-            for (uint32_t i = 0; i < n; i++) {
-                notFixed[allocator, i] = i;
-                maxMin = std::max(maxMin, x[allocator, i][allocator].min());
-                maxMax = std::max(maxMax, x[allocator, i][allocator].max());
-            }
-            y[allocator].removeBelow(maxMin);
-            y[allocator].removeAbove(maxMax);
-        }
-
-        DomainChange propagate(Context ctx) const {
+        DomainChange propagate(Context ctx) const requires parallel {
             uint32_t nFixed = this->nFixed[ctx];
             int32_t maxFixed = this->maxFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
@@ -170,6 +136,7 @@ namespace cp {
             return change;
         }
 
+
     private:
         X x;
         uint32_t n;
@@ -180,12 +147,8 @@ namespace cp {
     };
 
 
-    template<Constraint... Constraints, IntVarPtr X>
-    inline IntInterval maximum(Model<Constraints...>& model, X x, uint32_t n) {
-        IntInterval y(model);
-        model.constraint(Maximum(model, x, n, y));
-        return y;
-    }
+    template<IntVarPtr X, IntVar Y>
+    using MaximumSeq = Maximum<X, Y, false>;
 
 }
 

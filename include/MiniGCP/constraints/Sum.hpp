@@ -13,16 +13,17 @@ namespace cp {
 
     /**
      * @brief Constraint : sum_i x_i = y.
-     * Bound consistency, sequential implementation.
+     * Bound consistency.
      * @tparam X Type of x
      * @tparam Y Type of y
+     * @tparam parallel Whether to parallelize the propagation.
      */
-    template<IntVarPtr X, IntVar Y>
-    class SumSeq {
+    template<IntVarPtr X, IntVar Y, bool _parallel = true>
+    class Sum {
     public:
-        constexpr static bool parallel = false;
+        constexpr static bool parallel = _parallel;
 
-        SumSeq(Allocator& allocator, X x, uint32_t n, Y y) :
+        Sum(Allocator& allocator, X x, uint32_t n, Y y) :
             x(x), n(n), y(y),
             notFixed(allocator, n),
             nFixed(allocator, 0),
@@ -38,7 +39,8 @@ namespace cp {
             y[allocator].removeAbove(sumMax);
         }
 
-        DomainChange propagate(Context ctx) const {
+
+        DomainChange propagate(Context ctx) const requires (!parallel) {
             uint32_t nFixed = this->nFixed[ctx];
             int32_t sumFixed = this->sumFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
@@ -75,45 +77,8 @@ namespace cp {
             return change;
         }
 
-    private:
-        X x;
-        uint32_t n;
-        Y y;
-        Ptr<uint32_t, Scope::local> notFixed; // Indices of the unfixed variables
-        Ref<uint32_t, Scope::state> nFixed; // Number of unfixed variables
-        Ref<int32_t, Scope::state> sumFixed; // Sum of the unfixed variables
-    };
 
-
-
-    /**
-     * @brief Constraint : sum_i x_i = y.
-     * Bound consistency, parallel implementation.
-     * @tparam X Type of x
-     * @tparam Y Type of y
-     */
-    template<IntVarPtr X, IntVar Y>
-    class Sum {
-    public:
-        constexpr static bool parallel = true;
-
-        Sum(Allocator& allocator, X x, uint32_t n, Y y) :
-            x(x), n(n), y(y),
-            notFixed(allocator, n),
-            nFixed(allocator, 0),
-            sumFixed(allocator, 0) {
-            int32_t sumMin = 0;
-            int32_t sumMax = 0;
-            for (uint32_t i = 0; i < n; i++) {
-                notFixed[allocator, i] = i;
-                sumMin += x[allocator, i][allocator].min();
-                sumMax += x[allocator, i][allocator].max();
-            }
-            y[allocator].removeBelow(sumMin);
-            y[allocator].removeAbove(sumMax);
-        }
-
-        DomainChange propagate(Context ctx) const {
+        DomainChange propagate(Context ctx) const requires parallel {
             uint32_t nFixed = this->nFixed[ctx];
             uint32_t* notFixed = this->notFixed[ctx];
             int32_t sumFixed = this->sumFixed[ctx];
@@ -170,6 +135,7 @@ namespace cp {
             return change;
         }
 
+
     private:
         X x;
         uint32_t n;
@@ -180,12 +146,8 @@ namespace cp {
     };
 
 
-    template<Constraint... Constraints, IntVarPtr X>
-    inline IntInterval sum(Model<Constraints...>& model, X x, uint32_t n) {
-        IntInterval y(model);
-        model.constraint(Sum(model, x, n, y));
-        return y;
-    }
+    template<IntVarPtr X, IntVar Y>
+    using SumSeq = Sum<X, Y, false>;
 
 }
 
