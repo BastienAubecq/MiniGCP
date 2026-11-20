@@ -71,6 +71,12 @@ public:
         > model;
 
         int32_t horizon = accumulate(durations.begin(), durations.end(), 0);
+        Ptr<int32_t> durationsPtr(model, span(durations.data(), nActivities));
+        vector<Ptr<int32_t>> consumptionsPtrs;
+        for (int32_t i = 0; i < nResources; i++) {
+            consumptionsPtrs.push_back(Ptr(model, span(consumptions.data() + i * nActivities, nActivities)));
+        }
+
         IntIntervalPtr start(model, 0, horizon, nActivities);
         for (int32_t i = 0; i < nActivities; i++) {
             for (int32_t j : successors[i]) {
@@ -85,15 +91,13 @@ public:
                 model.constraint(IsAnd(first, second, overlap[i]));
             }
             for (int32_t i = 0; i < nResources; i++) {
-                span<int32_t const> consumptionsSpan(consumptions.data() + i * nActivities, nActivities);
                 IntInterval usage(model);
-                model.constraint(SumSeq(model, overlap * Ptr(model, consumptionsSpan), nActivities, usage));
+                model.constraint(SumSeq(model, overlap * consumptionsPtrs[i], nActivities, usage));
                 model.constraint(usage <= Const(capacities[i]));
             }
         }
-        span<int32_t const> durationsSpan(durations.data(), nActivities);
         IntInterval objective(model);
-        model.constraint(Maximum(model, start + Ptr(model, durationsSpan), nActivities, objective));
+        model.constraint(Maximum(model, start + durationsPtr, nActivities, objective));
 
         FirstFail strategy(start, nActivities);
         return DFSSolver(model, Minimization(objective), start, nActivities, strategy, params);
@@ -117,7 +121,7 @@ int main(int argc, char const* const* argv) {
     }
 
     RCPSP rcpsp(argv[1]);
-    DeviceParams<1, false, false> params(sycl::cpu_selector_v, 1);
+    DeviceParams<128, false, false> params(sycl::gpu_selector_v, 1);
     auto solver = rcpsp.binarySolver(params);
     solver.solve(noLimit);
 

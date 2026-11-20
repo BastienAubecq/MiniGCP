@@ -75,8 +75,8 @@ public:
         model.constraint(Circuit(model, succ, n));
         IntIntervalPtr cost(model, n);
         for (uint32_t i = 0; i < n; i++) {
-            span<int32_t const> distancesSpan(distances.data() + i * n, n);
-            model.constraint(Element1D(model, Ptr(model, distancesSpan), n, succ[i], cost[i]));
+            Ptr<int32_t> distancesPtr(model, span(distances.data() + i * n, n));
+            model.constraint(Element1D(model, distancesPtr, n, succ[i], cost[i]));
         }
         IntInterval objective(model);
         model.constraint(Sum(model, cost, n, objective));
