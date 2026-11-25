@@ -9,7 +9,7 @@
 namespace cp {
 
     /**
-     * @brief Constraint : x != y <=> r
+     * @brief Constraint : $x \ne y \iff r$
      * @tparam X Type of x
      * @tparam Y Type of y
      * @tparam R Type of r

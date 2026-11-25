@@ -12,7 +12,7 @@
 namespace cp {
 
     /**
-     * @brief Constraint : sum_i x_i = y.
+     * @brief Constraint : $\sum_i x_i = y$.
      * Bound consistency.
      * @tparam X Type of x
      * @tparam Y Type of y

@@ -16,4 +16,5 @@ function(add_example name)
 endfunction()
 
 add_example(NQueens)
+add_example(RCPSP)
 add_example(TSP)

@@ -11,7 +11,7 @@
 namespace cp {
 
     /**
-     * @brief Constraint : xi != xj for all i, j.
+     * @brief Constraint : $\forall i, j : x_i \ne x_j$.
      * Forward checking filtering.
      * @tparam X Type of x
      * @tparam parallel Whether to parallelize the propagation.

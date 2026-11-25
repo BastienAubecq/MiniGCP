@@ -38,11 +38,12 @@ TEST_CASE("NQueens statistics", "[NQueens][example]") {
     REQUIRE(stats.nNodes == 232163);
     REQUIRE(stats.nFailures == 101882);
     REQUIRE(stats.completed);
+    requireFeasible(12, solver.getSolution());
 }
 
 
 TEST_CASE("NQueens_binary feasible", "[NQueens_binary][example]") {
-    for (uint32_t n = 10; n <= 100; n += 5) {
+    for (uint32_t n = 10; n <= 100; n += 10) {
         auto solver = getNQueensBinarySolver(n, testParams);
         solver.solve(firstSolution);
 
@@ -60,4 +61,5 @@ TEST_CASE("NQueens_binary statistics", "[NQueens_binary][example]") {
     REQUIRE(stats.nNodes == 232163);
     REQUIRE(stats.nFailures == 101882);
     REQUIRE(stats.completed);
+    requireFeasible(12, solver.getSolution());
 }

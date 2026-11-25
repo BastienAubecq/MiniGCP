@@ -2,6 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <numeric>
+#include <random>
+#include <vector>
 #include "MiniGCP.hpp"
 
 using namespace std;
@@ -17,7 +19,10 @@ public:
     uint32_t nResources;
     vector<int32_t> capacities;
     vector<int32_t> durations;
-    vector<vector<int32_t>> successors;
+    vector<int32_t> consumptions;
+    vector<uint32_t> pred;
+    vector<uint32_t> succ;
+
 
     /**
      * @brief Read an RCPSP instance from a file
@@ -39,17 +44,89 @@ public:
         for (uint32_t iAct = 0; iAct < nActivities; iAct++) {
             input >> durations[iAct];
             for (uint32_t iRes = 0; iRes < nResources; iRes++) {
-                input >> consumption(iAct, iRes);
+                input >> consumptions[iRes * nActivities + iAct];
             }
 
             uint32_t nSucc;
             input >> nSucc;
-            successors.push_back(vector<int32_t>(nSucc));
             for (uint32_t iSucc = 0; iSucc < nSucc; iSucc++) {
-                input >> successors[iAct][iSucc];
-                --successors[iAct][iSucc];
+                uint32_t s;
+                input >> s;
+                pred.push_back(iAct);
+                succ.push_back(s - 1);
             }
         }
+    }
+
+
+    /**
+     * @brief Generate a random reproducible RCPSP instance
+     * @param nActivities Number of non-dummy activities
+     * @param nResources Number of renewable resources
+     * @param seed Random seed
+     */
+    RCPSP(uint32_t nActivities, uint32_t nResources, uint32_t seed = 0) :
+        nActivities(nActivities + 2),
+        nResources(nResources),
+        capacities(nResources, 6),
+        durations(nActivities + 2, 0),
+        consumptions((nActivities + 2) * nResources) {
+        mt19937 gen(seed);
+        uniform_int_distribution<int32_t> durDist(2, 6);
+        uniform_int_distribution<int32_t> reqDist(1, 4);
+
+        for (uint32_t iAct = 1; iAct <= nActivities; iAct++) {
+            durations[iAct] = durDist(gen);
+            for (uint32_t iRes = 0; iRes < nResources; iRes++) {
+                consumptions[iRes * nActivities + iAct] = reqDist(gen);
+            }
+        }
+
+        for (uint32_t i = 1; i <= nActivities; i++) {
+            // Source precedes all activities; all activities precede sink
+            pred.push_back(0);
+            succ.push_back(i);
+            pred.push_back(i);
+            succ.push_back(nActivities + 1);
+
+            // Random precedences
+            for (uint32_t j = i + 1; j <= nActivities; j++) {
+                if (j - i <= 3 && (gen() % 3 == 0)) {
+                    pred.push_back(i);
+                    succ.push_back(j);
+                }
+            }
+        }
+    }
+
+
+    /**
+     * @brief Get a solver for the RCPSP instance
+     * @param params Device parameters
+     * @return The solver 
+     */
+    auto solver(IsDeviceParams auto params) const {
+        Model<
+            LessOrEqual<Add<IntInterval, int32_t>, IntInterval>,
+            Cumulative<IntIntervalPtr, Ptr<int32_t>, Ptr<int32_t>>,
+            Maximum<AddVec<IntIntervalPtr, Ptr<int32_t>>, IntInterval>
+        > model;
+
+        int32_t horizon = accumulate(durations.begin(), durations.end(), 0);
+        IntIntervalPtr start(model, 0, horizon, nActivities);
+        for (uint32_t i = 0; i < pred.size(); i++) {
+            model.constraint(start[pred[i]] + durations[pred[i]] <= start[succ[i]]);
+        }
+        Ptr<int32_t> durationsPtr(model, span(durations.data(), nActivities));
+        for (uint32_t r = 0; r < nResources; r++) {
+            Ptr<int32_t> consumptionsPtr(model, span(consumptions.data() + r * nActivities, nActivities));
+            model.constraint(Cumulative(model, start, durationsPtr, consumptionsPtr, nActivities, capacities[r]));
+        }
+        IntInterval objective(model);
+        model.constraint(Maximum(model, start + durationsPtr, nActivities, objective));
+
+        MinFirst strategy(start, nActivities);
+        return DFSSolver(model, Minimization(objective), start, nActivities, strategy, params);
     }
 
 
@@ -78,10 +155,8 @@ public:
         }
 
         IntIntervalPtr start(model, 0, horizon, nActivities);
-        for (int32_t i = 0; i < nActivities; i++) {
-            for (int32_t j : successors[i]) {
-                model.constraint(start[i] + durations[i] <= start[j]);
-            }
+        for (uint32_t i = 0; i < pred.size(); i++) {
+            model.constraint(start[pred[i]] + durations[pred[i]] <= start[succ[i]]);
         }
         for (int32_t t = 0; t < horizon; t++) {
             BoolPtr overlap(model, nActivities);
@@ -90,26 +165,23 @@ public:
                 Bool second = isLess(model, Const(t - durations[i]), start[i]);
                 model.constraint(IsAnd(first, second, overlap[i]));
             }
-            for (int32_t i = 0; i < nResources; i++) {
+            for (int32_t r = 0; r < nResources; r++) {
                 IntInterval usage(model);
-                model.constraint(SumSeq(model, overlap * consumptionsPtrs[i], nActivities, usage));
-                model.constraint(usage <= Const(capacities[i]));
+                model.constraint(SumSeq(model, overlap * consumptionsPtrs[r], nActivities, usage));
+                model.constraint(usage <= Const(capacities[r]));
             }
         }
         IntInterval objective(model);
         model.constraint(Maximum(model, start + durationsPtr, nActivities, objective));
 
-        FirstFail strategy(start, nActivities);
+        MinFirst strategy(start, nActivities);
         return DFSSolver(model, Minimization(objective), start, nActivities, strategy, params);
     }
 
 
-    int32_t& consumption(int32_t iAct, int32_t iRes) {
+    int32_t consumption(int32_t iAct, int32_t iRes) const {
         return consumptions[iRes * nActivities + iAct];
     }
-
-private:
-    vector<int32_t> consumptions;
 };
 
 
@@ -121,8 +193,8 @@ int main(int argc, char const* const* argv) {
     }
 
     RCPSP rcpsp(argv[1]);
-    DeviceParams<128, false, false> params(sycl::gpu_selector_v, 1);
-    auto solver = rcpsp.binarySolver(params);
+    DeviceParams<128> params(sycl::gpu_selector_v, 1);
+    auto solver = rcpsp.solver(params);
     solver.solve(noLimit);
 
     cout << solver.getStatistics() << endl;

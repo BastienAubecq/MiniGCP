@@ -14,7 +14,7 @@
 namespace cp {
 
     /**
-     * @brief Constraint : max_i x_i = y.
+     * @brief Constraint : $\max_i x_i = y$.
      * Bound consistency.
      * @tparam X Type of x
      * @tparam Y Type of y

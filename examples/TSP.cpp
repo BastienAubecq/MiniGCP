@@ -16,6 +16,7 @@ using namespace cp;
 class TSP {
 public:
     uint32_t n;
+    vector<int32_t> distances;
 
     /**
      * @brief Generate a random TSP instance in a 2D grid
@@ -89,9 +90,6 @@ public:
     int32_t distance(uint32_t i, uint32_t j) const {
         return distances[i * n + j];
     }
-
-private:
-    vector<int32_t> distances;
 };
 
 

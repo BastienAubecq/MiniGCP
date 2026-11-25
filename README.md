@@ -19,6 +19,7 @@
 - **Constraints (`include/MiniGCP/constraints/`)**:
   - `AllDifferentFWC` (work-group parallel) & `AllDifferentFWCSeq` (single-thread): Forward-checking `AllDifferent`.
   - `Circuit` (work-group parallel) & `CircuitSeq` (single-thread): Subtour elimination over successor variables.
+  - `Cumulative` (work-group parallel) & `CumulativeSeq` (single-thread): Time-Table filtering (Gay, Hartert, Schaus, CP 2015) combined with the event-point `Profile` structure (Gingras & Quimper, IJCAI 2016) built in GPU local memory via parallel Bitonic sort and prefix scan.
   - `Element1D`: 1D array indexing constraint $t[y] = z$ with sorted index bounds filtering.
   - `IsEqual` : Binary equality $x = y \iff r$.
   - `IsLess` : Binary comparison $x < y \iff r$.
@@ -27,6 +28,7 @@
   - `Sum` (work-group parallel) & `SumSeq` (single-thread): Linear bound-consistent sum $\sum_i x_i = y$.
 - **Search & Solvers (`include/MiniGCP/search/`, `include/MiniGCP/solver/`)**:
   - `FirstFail`: Parallel work-group reduction (`groupArgmin`) selecting the unfixed variable with the smallest domain and branching with `FixRemove` ($x = \min(D(x))$ left, $x \neq \min(D(x))$ right).
+  - `EstFirst`: Parallel work-group reduction (`groupArgmin`) selecting the unfixed task variable with the smallest earliest start time ($\min(D(x))$).
   - Objectives: `Satisfaction`, `Minimization<IntVar>`, `Maximization<IntVar>`.
   - `DFSSolver`: Depth-First Search within a single work-group of `groupSize` threads.
   - `EPSSolver`: Embarrassingly Parallel Search decomposing the top `epsDepth` levels into $2^{\text{epsDepth}}$ subproblems solved dynamically across `nGroups` work-groups.
@@ -49,6 +51,7 @@ Alternatively, any other SYCL compiler can be used, for example [Intel oneAPI DP
 
 The `examples/` directory includes:
 - **`NQueens`** (`examples/NQueens.cpp`): Solves the $N$-Queens problem (includes `AllDifferentFWC`, and binary `NotEqual`).
+- **`RCPSP`** (`examples/RCPSP.cpp`): Solves the Resource-Constrained Project Scheduling Problem to optimality using `PrecedenceVec`, `Cumulative`, and `EstFirst`. Benchmark instances (including PSPLib `j30_1_1.rcp`) are provided in `data/RCPSP/`.
 - **`TSP`** (`examples/TSP.cpp`): Solves the Travelling Salesperson Problem to optimality using `AllDifferentFWC`, `Circuit`, `Element1D`, and `Sum`. Benchmark instances are provided in `data/TSP/`.
 
 ```bash
@@ -90,6 +93,21 @@ Objective: 291
 Subproblem: 0
 Completed: 1
 10 12 6 5 8 7 4 9 14 13 3 2 0 11 1
+```
+
+### Run RCPSP
+```bash
+./RCPSP ../../data/RCPSP/j30_1_1.rcp
+```
+Example output (`./RCPSP ../../data/RCPSP/j30_1_1.rcp`):
+```text
+Solutions: 3
+Nodes: 125
+Failures: 60
+Objective: 43
+Subproblem: 0
+Completed: 1
+0 8 0 0 10 31 8 4 6 6 16 13 4 15 16 13 23 10 13 25 29 29 36 38 32 25 15 32 18 41 35 43
 ```
 
 ---

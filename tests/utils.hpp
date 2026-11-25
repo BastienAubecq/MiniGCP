@@ -16,7 +16,7 @@
 /**
  * @brief Default device parameters for all tests
  */
-inline cp::DeviceParams<64> testParams(sycl::gpu_selector_v, 1);
+inline cp::DeviceParams<64, false, false> testParams(sycl::gpu_selector_v, 1);
 
 
 /**

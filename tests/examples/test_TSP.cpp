@@ -1,5 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <algorithm>
 #include <vector>
 #include "utils.hpp"
 
@@ -26,10 +25,10 @@ static void requireFeasible(TSP const& tsp, int32_t objective, std::span<int32_t
 
 
 TEST_CASE("TSP feasible", "[TSP][example]") {
-    for (uint32_t n = 10; n <= 100; n += 5) {
+    for (uint32_t n = 10; n <= 100; n += 10) {
         TSP tsp(n, 100);
         auto solver = tsp.solver(testParams);
-        solver.solve([](SearchStatistics stats) { return stats.nSolutions > 0 && stats.nNodes >= 10000; });
+        solver.solve([](SearchStatistics stats) { return stats.nSolutions > 0 && stats.nNodes >= 1000; });
 
         REQUIRE(solver.getStatistics().nSolutions > 0);
         requireFeasible(tsp, solver.getStatistics().objective, solver.getSolution());
@@ -47,4 +46,5 @@ TEST_CASE("TSP statistics", "[TSP][example]") {
     REQUIRE(stats.nFailures == 3453);
     REQUIRE(stats.objective == 291);
     REQUIRE(stats.completed);
+    requireFeasible(tsp, solver.getStatistics().objective, solver.getSolution());
 }

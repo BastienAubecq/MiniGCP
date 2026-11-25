@@ -118,13 +118,13 @@ namespace cp {
         DomainChange removeBelow(int32_t v) {
             bool changed = atomic(a).fetch_max(v) < v;
             if (!changed) return DomainChange::none;
-            return v <= atomic(b).load() ? DomainChange::changed : DomainChange::inconsistency;    
+            return v <= b ? DomainChange::changed : DomainChange::inconsistency;    
         }
 
         DomainChange removeAbove(int32_t v) {
             bool changed = atomic(b).fetch_min(v) > v;
             if (!changed) return DomainChange::none;
-            return atomic(a).load() <= v ? DomainChange::changed : DomainChange::inconsistency;    
+            return a <= v ? DomainChange::changed : DomainChange::inconsistency;    
         }
 
     private:
