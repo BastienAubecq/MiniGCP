@@ -30,6 +30,10 @@ namespace cp {
             }
         }
 
+        void post(EventRegistrar& reg) const {
+            reg.onFix(x, n);
+        }
+
 
         DomainChange propagate(Context ctx) const requires (!parallel) {
             uint32_t nFixed = this->nFixed[ctx];

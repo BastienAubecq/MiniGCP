@@ -28,8 +28,9 @@ namespace cp {
     public:
         DataStore(
             sycl::queue& queue, std::array<std::span<std::byte const>, 3> data, uint32_t temporarySize,
-            Output output, uint32_t outputSize, size_t nGroups, uint32_t maxDepth
-        ) : temporarySize(temporarySize), outputSize(outputSize), output(output) {
+            Output output, uint32_t outputSize, size_t nGroups, uint32_t maxDepth,
+            uint32_t varEventsOffset = 0, bool hasVarEvents = false
+        ) : temporarySize(temporarySize), outputSize(outputSize), varEventsOffset(varEventsOffset), hasVarEvents(hasVarEvents), output(output) {
             globalSize = data[0].size();
             localSize = data[1].size();
             stateSize = data[2].size();
@@ -118,15 +119,17 @@ namespace cp {
          * @return Current context
          */
         Context getContext(sycl::nd_item<1> item, sycl::stream error, std::array<sycl::local_accessor<std::byte>, 3> local) const {
+            std::byte* localPtr = localLocal ?
+                std::get<1>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
+                localData + localSize * (1 + item.get_group(0));
+            uint32_t* varEvents = hasVarEvents ? reinterpret_cast<uint32_t*>(localPtr + varEventsOffset) : nullptr;
             return Context(item, error, {
                 globalData,
-                localLocal ?
-                    std::get<1>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
-                    localData + localSize * (1 + item.get_group(0)),
+                localPtr,
                 localState ?
                     std::get<2>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
                     stateData + stateSize * (1 + item.get_group(0))
-            }, std::get<0>(local).get_multi_ptr<sycl::access::decorated::no>().get() + 4);
+            }, std::get<0>(local).get_multi_ptr<sycl::access::decorated::no>().get() + 4, varEvents);
         }
 
 
@@ -240,6 +243,8 @@ namespace cp {
         uint32_t stackSize;
         uint32_t temporarySize;
         uint32_t outputSize;
+        uint32_t varEventsOffset;
+        bool hasVarEvents;
         std::byte* globalData;
         std::byte* localData;
         std::byte* stateData; // Stacks of states

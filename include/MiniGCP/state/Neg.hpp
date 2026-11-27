@@ -71,6 +71,10 @@ namespace cp {
         auto operator[](Allocator& allocator) const {
             return NegRef<decltype(x[allocator])>(x[allocator]);
         }
+
+        void registerEvent(EventRegistrar& reg, DomainEvent ev) const {
+            x.registerEvent(reg, swapMinMax(ev));
+        }
     };
 
     template<IntVar T>

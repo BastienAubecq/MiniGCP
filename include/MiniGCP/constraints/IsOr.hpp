@@ -22,6 +22,12 @@ namespace cp {
 
         IsOr(X x, Y y, R r) : x(x), y(y), r(r) {}
 
+        void post(EventRegistrar& reg) const {
+            reg.onFix(x);
+            reg.onFix(y);
+            reg.onFix(r);
+        }
+
         DomainChange propagate(Context ctx) const {
             std::optional<int32_t> xv = x[ctx].value();
             std::optional<int32_t> yv = y[ctx].value();

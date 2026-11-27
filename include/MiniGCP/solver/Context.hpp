@@ -2,10 +2,23 @@
 #define MINIGCP_CONTEXT
 
 #include <array>
+#include <cstdint>
 #include "sycl/sycl.hpp"
+#include "MiniGCP/state/DomainChange.hpp"
 #include "MiniGCP/state/Scope.hpp"
 
 namespace cp {
+
+    /**
+     * @brief Record a domain change event for a variable into the work-group's dirty event buffer
+     */
+    inline void recordVarEvent(uint32_t* varEvents, uint32_t varId, DomainEvent ev) {
+        if (varEvents == nullptr || ev == DomainEvent::none) return;
+        uint32_t wordIdx = varId >> 3;
+        uint32_t shift = (varId & 7u) << 2;
+        uint32_t mask = static_cast<uint32_t>(ev) << shift;
+        sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::work_group>(varEvents[wordIdx]).fetch_or(mask);
+    }
 
     /**
      * @brief Information about the current thread and where its data is located.
@@ -26,8 +39,8 @@ namespace cp {
          */
         sycl::stream error;
 
-        Context(sycl::nd_item<1> item, sycl::stream error, std::array<std::byte*, 3> data, std::byte* temporary)
-            : item(item), error(error), data(data), temporary(temporary) {}
+        Context(sycl::nd_item<1> item, sycl::stream error, std::array<std::byte*, 3> data, std::byte* temporary, uint32_t* varEvents = nullptr)
+            : item(item), error(error), data(data), temporary(temporary), varEvents(varEvents) {}
 
         /**
          * @brief Get a reference to a temporary array in this context
@@ -35,6 +48,13 @@ namespace cp {
         template<typename T>
         T* getTemporary() const {
             return reinterpret_cast<T*>(temporary);
+        }
+
+        /**
+         * @brief Get the per-work-group dirty variable event buffer (4 bits per variable)
+         */
+        uint32_t* getVarEvents() const {
+            return varEvents;
         }
 
         /**
@@ -61,6 +81,7 @@ namespace cp {
     private:
         std::array<std::byte*, 3> data;
         std::byte* temporary;
+        uint32_t* varEvents;
     };
 
 }

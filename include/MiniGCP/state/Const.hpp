@@ -7,6 +7,7 @@
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
+#include "MiniGCP/state/EventRegistrar.hpp"
 
 namespace cp {
 
@@ -75,6 +76,8 @@ namespace cp {
         ConstRef operator[](Allocator& allocator) const {
             return ConstRef(c);
         }
+
+        void registerEvent(EventRegistrar&, DomainEvent) const {}
     
     private:
         [[no_unique_address]] C c;

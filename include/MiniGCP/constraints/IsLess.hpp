@@ -22,6 +22,12 @@ namespace cp {
 
         IsLess(X x, Y y, R r) : x(x), y(y), r(r) {}
 
+        void post(EventRegistrar& reg) const {
+            reg.onBoundChange(x);
+            reg.onBoundChange(y);
+            reg.onFix(r);
+        }
+
         DomainChange propagate(Context ctx) const {
             if (r[ctx].value() == 1) { // Less constraint
                 return x[ctx].removeAbove(y[ctx].max() - 1) | y[ctx].removeBelow(x[ctx].min() + 1);
@@ -37,7 +43,7 @@ namespace cp {
             return DomainChange::none;
         }
 
-    private:
+    protected:
         [[no_unique_address]] X x;
         [[no_unique_address]] Y y;
         [[no_unique_address]] R r;
@@ -55,6 +61,11 @@ namespace cp {
     class Less : public IsLess<X, Y, Const<Lit<1>>> {
     public:
         Less(X x, Y y) : IsLess<X, Y, Const<Lit<1>>>(x, y, Const(Lit<1>())) {}
+
+        void post(EventRegistrar& reg) const {
+            reg.onMinChange(this->x);
+            reg.onMaxChange(this->y);
+        }
     };
 
     template<IntVar X, IntVar Y>
@@ -86,6 +97,11 @@ namespace cp {
     class LessOrEqual : public IsLessOrEqual<X, Y, Const<Lit<1>>> {
     public:
         LessOrEqual(X x, Y y) : IsLessOrEqual<X, Y, Const<Lit<1>>>(x, y, Const(Lit<1>())) {}
+
+        void post(EventRegistrar& reg) const {
+            reg.onMinChange(this->x);
+            reg.onMaxChange(this->y);
+        }
     };
 
     template<IntVar X, IntVar Y>

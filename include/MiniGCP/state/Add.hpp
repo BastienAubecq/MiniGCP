@@ -74,6 +74,10 @@ namespace cp {
         auto operator[](Allocator& allocator) const {
             return AddRef<decltype(x[allocator])>(x[allocator], y);
         }
+
+        void registerEvent(EventRegistrar& reg, DomainEvent ev) const {
+            x.registerEvent(reg, ev);
+        }
     };
 
     template<IntVar V, std::convertible_to<int32_t> C>

@@ -10,6 +10,7 @@
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
+#include "MiniGCP/state/EventRegistrar.hpp"
 
 namespace cp {
 
@@ -166,7 +167,8 @@ namespace cp {
      */
     class DeviceIntBitsetRef {
     public:
-        explicit DeviceIntBitsetRef(int32_t* ptr) : ptr(ptr) {}
+        explicit DeviceIntBitsetRef(int32_t* ptr, uint32_t varId = 0, uint32_t* varEvents = nullptr) :
+            ptr(ptr), varId(varId), varEvents(varEvents) {}
 
         int32_t min() const {
             return ptr[0];
@@ -200,18 +202,23 @@ namespace cp {
 
             // updateSize must be before updateMin/Max so that if 2 threads update the bitset concurrently,
             // one of them sees both updates in updateMin/Max thanks to the acq_rel atomic operation in updateSize.
-            DomainChange change = updateSize(1, true);
-            updateMin(min, max);
-            updateMax(min, max);
-            return change;
+            int32_t prevSize = atomic(ptr[2]).fetch_sub(1, sycl::memory_order::acq_rel);
+            if (prevSize <= 1) return DomainChange::inconsistency;
+
+            DomainEvent ev = DomainEvent::domain;
+            if (prevSize == 2) ev |= DomainEvent::fix;
+            if (updateMin(min, max)) ev |= DomainEvent::min;
+            if (updateMax(min, max)) ev |= DomainEvent::max;
+            recordVarEvent(varEvents, varId, ev);
+            return DomainChange::changed;
         }
 
         DomainChange fix(int32_t v) const {
             int32_t min = ptr[0], max = ptr[1];
             if (v == min && v == max) return DomainChange::none;
             if (v < min || v > max) return DomainChange::inconsistency;
-            atomic(ptr[0]).fetch_max(v); // Update min
-            atomic(ptr[1]).fetch_min(v); // Update max
+            int32_t prevMin = atomic(ptr[0]).fetch_max(v); // Update min
+            int32_t prevMax = atomic(ptr[1]).fetch_min(v); // Update max
 
             // Clear and count bits
             int32_t index = 3 + v / 32;
@@ -224,7 +231,15 @@ namespace cp {
                 removed += sycl::popcount(atomic(ptr[i]).exchange(0));
             }
 
-            return updateSize(removed);
+            if (removed == 0) return DomainChange::none;
+            int32_t prevSize = atomic(ptr[2]).fetch_sub(removed, sycl::memory_order::relaxed);
+            if (prevSize <= removed) return DomainChange::inconsistency;
+
+            DomainEvent ev = DomainEvent::domain | DomainEvent::fix;
+            if (prevMin < v) ev |= DomainEvent::min;
+            if (prevMax > v) ev |= DomainEvent::max;
+            recordVarEvent(varEvents, varId, ev);
+            return DomainChange::changed;
         }
 
         DomainChange removeBelow(int32_t v) const {
@@ -240,9 +255,15 @@ namespace cp {
                 removed += sycl::popcount(atomic(ptr[i]).exchange(0));
             }
 
-            DomainChange change = updateSize(removed, true);
+            if (removed == 0) return DomainChange::none;
+            int32_t prevSize = atomic(ptr[2]).fetch_sub(removed, sycl::memory_order::acq_rel);
+            if (prevSize <= removed) return DomainChange::inconsistency;
+
             updateMin(v, max);
-            return change;
+            DomainEvent ev = DomainEvent::domain | DomainEvent::min;
+            if (prevSize - removed == 1) ev |= DomainEvent::fix;
+            recordVarEvent(varEvents, varId, ev);
+            return DomainChange::changed;
         }
 
         DomainChange removeAbove(int32_t v) const {
@@ -259,9 +280,15 @@ namespace cp {
                 removed += sycl::popcount(atomic(ptr[i]).exchange(0));
             }
 
-            DomainChange change = updateSize(removed, true);
+            if (removed == 0) return DomainChange::none;
+            int32_t prevSize = atomic(ptr[2]).fetch_sub(removed, sycl::memory_order::acq_rel);
+            if (prevSize <= removed) return DomainChange::inconsistency;
+
             updateMax(min, v);
-            return change;
+            DomainEvent ev = DomainEvent::domain | DomainEvent::max;
+            if (prevSize - removed == 1) ev |= DomainEvent::fix;
+            recordVarEvent(varEvents, varId, ev);
+            return DomainChange::changed;
         }
 
         /*void print() const {
@@ -277,43 +304,37 @@ namespace cp {
         using atomic = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed, sycl::memory_scope::work_group>;
 
         int32_t* ptr;
+        uint32_t varId;
+        uint32_t* varEvents;
 
         /**
          * @brief Recompute min after removing some values
+         * @return Whether min increased
          */
-        void updateMin(int32_t min, int32_t max) const {
+        bool updateMin(int32_t min, int32_t max) const {
             for (int32_t i = 3 + min / 32; i <= 3 + max / 32; i++) {
                 int32_t word = atomic(ptr[i]).load();
                 if (word != 0) {
-                    atomic(ptr[0]).fetch_max((i - 3) * 32 + sycl::ctz(word));
-                    return;
+                    int32_t newMin = (i - 3) * 32 + sycl::ctz(word);
+                    return atomic(ptr[0]).fetch_max(newMin) < newMin;
                 }
             }
+            return false;
         }
 
         /**
          * @brief Recompute max after removing some values
+         * @return Whether max decreased
          */
-        void updateMax(int32_t min, int32_t max) const {
+        bool updateMax(int32_t min, int32_t max) const {
             for (int32_t i = 3 + max / 32; i >= 3 + min / 32; i--) {
                 int32_t word = atomic(ptr[i]).load();
                 if (word != 0) {
-                    atomic(ptr[1]).fetch_min((i - 3) * 32 + 31 - sycl::clz(word));
-                    return;
+                    int32_t newMax = (i - 3) * 32 + 31 - sycl::clz(word);
+                    return atomic(ptr[1]).fetch_min(newMax) > newMax;
                 }
             }
-        }
-
-        /**
-         * @brief Decrease size after removing some values
-         * @param removed Number of values removed
-         * @param sync Whether to use an acq_rel atomic operation
-         * @return Whether an inconsistency was detected
-         */
-        DomainChange updateSize(int32_t removed, bool sync = false) const {
-            if (removed == 0) return DomainChange::none;
-            int32_t prev = atomic(ptr[2]).fetch_sub(removed, sync ? sycl::memory_order::acq_rel : sycl::memory_order::relaxed);
-            return prev == removed ? DomainChange::inconsistency : DomainChange::changed;
+            return false;
         }
     };
 
@@ -323,7 +344,7 @@ namespace cp {
      */
     class IntBitset {
     public:
-        explicit IntBitset(uint32_t index) : index(index) {}
+        explicit IntBitset(uint32_t index, uint32_t varId = 0) : index(index), varId(varId) {}
 
         /**
          * @brief Allocate an integer variable with an initially full bitset domain starting at 0
@@ -342,15 +363,24 @@ namespace cp {
         IntBitset(Allocator& allocator, std::span<const int32_t> values);
 
         DeviceIntBitsetRef operator[](Context ctx) const {
-            return DeviceIntBitsetRef(ctx.getData<int32_t, Scope::state>(index));
+            return DeviceIntBitsetRef(ctx.getData<int32_t, Scope::state>(index), varId, ctx.getVarEvents());
         }
 
         HostIntBitsetRef operator[](Allocator& allocator) const {
             return HostIntBitsetRef(allocator.getData<int32_t, Scope::state>(index));
         }
 
+        void registerEvent(EventRegistrar& reg, DomainEvent ev) const {
+            reg.subscribe(varId, ev);
+        }
+
+        uint32_t id() const {
+            return varId;
+        }
+
     private:
         uint32_t index;
+        uint32_t varId;
     };
 
 
@@ -372,6 +402,7 @@ namespace cp {
             uint32_t nWords = 3 + nFull + (remaining > 0);
             stride = nWords * sizeof(int32_t);
             index = allocator.allocate<int32_t, Scope::state>(nWords * count);
+            firstVarId = allocator.allocateVar(count);
             int32_t* var = allocator.getData<int32_t, Scope::state>(index);
 
             // Add min, max, size
@@ -408,6 +439,7 @@ namespace cp {
             int32_t nWords = max / 32 + 4;
             stride = nWords * sizeof(int32_t);
             index = allocator.allocate<int32_t, Scope::state>(nWords * count);
+            firstVarId = allocator.allocateVar(count);
             int32_t* var = allocator.getData<int32_t, Scope::state>(index);
 
             // Add min, max, size
@@ -424,10 +456,15 @@ namespace cp {
             for (int32_t v : values) {
                 var[3 + v / 32] |= (int32_t)1 << v % 32;
             }
+
+            // Copies
+            for (uint32_t i = 1; i < count; i++) {
+                std::copy(var, var + nWords, var + nWords * i);
+            }
         }
 
         IntBitset operator[](uint32_t i) const {
-            return IntBitset(index + i * stride);
+            return IntBitset(index + i * stride, firstVarId + i);
         }
 
         IntBitset operator[](Context, uint32_t i) const {
@@ -441,13 +478,14 @@ namespace cp {
     private:
         uint32_t index;
         uint32_t stride;
+        uint32_t firstVarId;
     };
 
     inline IntBitset::IntBitset(Allocator& allocator, int32_t size) :
-        index(IntBitsetPtr(allocator, size, 1)[0].index) {}
+        IntBitset(IntBitsetPtr(allocator, size, 1)[0]) {}
 
     inline IntBitset::IntBitset(Allocator& allocator, std::span<const int32_t> values) :
-        index(IntBitsetPtr(allocator, values, 1)[0].index) {}
+        IntBitset(IntBitsetPtr(allocator, values, 1)[0]) {}
 
 }
 

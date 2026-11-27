@@ -87,6 +87,12 @@ namespace cp {
         auto operator[](Allocator& allocator) const {
             return MulRef<decltype(x[allocator])>(x[allocator], y);
         }
+
+        void registerEvent(EventRegistrar& reg, DomainEvent ev) const {
+            int32_t c = static_cast<int32_t>(y);
+            if (c > 0) x.registerEvent(reg, ev);
+            else if (c < 0) x.registerEvent(reg, swapMinMax(ev));
+        }
     };
 
     template<IntVar V, std::convertible_to<int32_t> C>
