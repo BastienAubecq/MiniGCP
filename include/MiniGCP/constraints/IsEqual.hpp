@@ -21,6 +21,12 @@ namespace cp {
 
         IsEqual(X x, Y y, R r) : x(x), y(y), r(r) {}
 
+        void post(EventRegistrar& reg) const {
+            reg.onBoundChange(x);
+            reg.onBoundChange(y);
+            reg.onFix(r);
+        }
+
         DomainChange propagate(Context ctx) const {
             int32_t xMin = x[ctx].min();
             int32_t xMax = x[ctx].max();
@@ -48,7 +54,7 @@ namespace cp {
             return DomainChange::none;
         }
 
-    private:
+    protected:
         [[no_unique_address]] X x;
         [[no_unique_address]] Y y;
         [[no_unique_address]] R r;
@@ -78,6 +84,11 @@ namespace cp {
     class NotEqual : public IsEqual<X, Y, Const<Lit<0>>> {
     public:
         NotEqual(X x, Y y) : IsEqual<X, Y, Const<Lit<0>>>(x, y, Const(Lit<0>())) {}
+
+        void post(EventRegistrar& reg) const {
+            reg.onFix(this->x);
+            reg.onFix(this->y);
+        }
     };
 
     template<IntVar X, IntVar Y>

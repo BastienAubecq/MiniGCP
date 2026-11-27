@@ -41,6 +41,11 @@ namespace cp {
             y[allocator].removeAbove(maxMax);
         }
 
+        void post(EventRegistrar& reg) const {
+            reg.onBoundChange(x, n);
+            reg.onBoundChange(y);
+        }
+
 
         DomainChange propagate(Context ctx) const requires (!parallel) {
             uint32_t nFixed = this->nFixed[ctx];

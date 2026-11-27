@@ -8,6 +8,7 @@
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
+#include "MiniGCP/state/EventRegistrar.hpp"
 
 namespace cp {
 
@@ -76,9 +77,10 @@ namespace cp {
      * @brief Integer variable
      */
     template<typename T>
-    concept IntVar = sycl::is_device_copyable_v<T> && requires(T const& var, Context ctx, Allocator& allocator) {
+    concept IntVar = sycl::is_device_copyable_v<T> && requires(T const& var, Context ctx, Allocator& allocator, EventRegistrar& reg, DomainEvent ev) {
         { var[ctx] } -> IntVarRef;
         { var[allocator] } -> IntVarRef;
+        { var.registerEvent(reg, ev) } -> std::same_as<void>;
     };
 
     /**

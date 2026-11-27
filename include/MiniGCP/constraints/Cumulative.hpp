@@ -39,6 +39,10 @@ namespace cp {
             allocator.temporary<int32_t>(4 * maxEvents + 4);
         }
 
+        void post(EventRegistrar& reg) const {
+            reg.onBoundChange(s, n);
+        }
+
         DomainChange propagate(Context ctx) const {
             auto group = ctx.item.get_group();
             uint32_t tid = ctx.item.get_local_id(0);
@@ -69,7 +73,7 @@ namespace cp {
                         if (height > capacity) {
                             heightOverload = true;
                         } else {
-                            auto& var = s[ctx, i][ctx];
+                            auto var = s[ctx, i][ctx];
                             int32_t est = var.min();
                             lst = var.max();
                             ect = est + dur;
@@ -181,7 +185,7 @@ namespace cp {
                     int32_t height = c[i];
                     if (dur <= 0 || height <= 0) continue;
 
-                    auto& var = s[ctx, i][ctx];
+                    auto var = s[ctx, i][ctx];
                     int32_t est = var.min();
                     int32_t lst = var.max();
                     if (est == lst) continue;

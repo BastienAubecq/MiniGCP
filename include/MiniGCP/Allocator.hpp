@@ -87,9 +87,28 @@ namespace cp {
             return temporarySize;
         }
 
+        /**
+         * @brief Allocate dense variable IDs for event tracking
+         * @param count Number of variables
+         * @return First allocated variable ID
+         */
+        uint32_t allocateVar(uint32_t count = 1) {
+            if (static_cast<size_t>(numVars) + count > UINT32_MAX) {
+                throw std::range_error("Allocated variables exceed 32-bit integer range");
+            }
+            uint32_t id = numVars;
+            numVars += count;
+            return id;
+        }
+
+        uint32_t getNumVars() const {
+            return numVars;
+        }
+
     private:
         std::array<std::vector<std::byte>, 3> data; // A vector of bytes per scope
         uint32_t temporarySize = 0;
+        uint32_t numVars = 0;
     };
 
 };

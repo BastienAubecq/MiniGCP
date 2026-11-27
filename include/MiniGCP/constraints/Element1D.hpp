@@ -37,6 +37,11 @@ namespace cp {
             z[allocator].removeAbove(t[allocator, sorted[allocator, n - 1]]);
         }
 
+        void post(EventRegistrar& reg) const {
+            reg.onDomainChange(y);
+            reg.onBoundChange(z);
+        }
+
         DomainChange propagate(Context ctx) const {
             int32_t* t = this->t[ctx];
             uint32_t* sorted = this->sorted[ctx];

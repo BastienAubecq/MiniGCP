@@ -33,13 +33,19 @@ namespace cp {
         bool firstSearch = true;
 
         DeviceSolver(sycl::queue& queue, Model<Constraints...> model, Objective objective, Output output, uint32_t outputSize, Strategy strategy, uint32_t nGroups) :
+            DeviceSolver(queue, model, model.prepareEventStore(), objective, output, outputSize, strategy, nGroups) {}
+
+    private:
+        DeviceSolver(sycl::queue& queue, Model<Constraints...>& model, EventStoreLayout<sizeof...(Constraints)> layout, Objective objective, Output output, uint32_t outputSize, Strategy strategy, uint32_t nGroups) :
             objective(objective), strategy(strategy),
-            data(queue, model.getData(), model.getTemporarySize(), output, outputSize, nGroups, strategy.maxDepth()),
-            constraints(queue, model.getConstraints()) {
+            data(queue, model.getData(), model.getTemporarySize(), output, outputSize, nGroups, strategy.maxDepth(), layout.varEventsOffset, layout.varEventsWords > 0),
+            constraints(queue, model.getConstraints(), layout, model.getNumVars(), model.getSubscriptions()) {
             statistics = sycl::malloc_device<SearchStatistics>(1, queue);
             SearchStatistics stats;
             queue.memcpy(statistics, &stats, sizeof(SearchStatistics)).wait();
         }
+
+    public:
 
         void destroy(sycl::queue& queue) const {
             data.destroy(queue);

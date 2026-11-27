@@ -7,6 +7,7 @@
 #include "MiniGCP/Allocator.hpp"
 #include "MiniGCP/solver/Context.hpp"
 #include "MiniGCP/state/DomainChange.hpp"
+#include "MiniGCP/state/EventRegistrar.hpp"
 
 namespace cp {
 
@@ -73,18 +74,26 @@ namespace cp {
 
 
     /**
-     * @brief Device-side thread-safe integer variable interval
+     * @brief Device-side storage for an integer variable interval
      */
-    class DeviceIntInterval {
+    struct DeviceIntInterval {
+        int32_t a, b;
+    };
+
+    /**
+     * @brief Device-side thread-safe reference to an integer variable interval
+     */
+    class DeviceIntIntervalRef {
     public:
-        DeviceIntInterval(int32_t a, int32_t b) : a(a), b(b) {}
+        DeviceIntIntervalRef(DeviceIntInterval* ptr, uint32_t varId = 0, uint32_t* varEvents = nullptr) :
+            ptr(ptr), varId(varId), varEvents(varEvents) {}
 
         int32_t min() const {
-            return a;
+            return ptr->a;
         }
 
         int32_t max() const {
-            return b;
+            return ptr->b;
         }
 
         int32_t size() const {
@@ -101,36 +110,54 @@ namespace cp {
             return v >= min() && v <= max();
         }
 
-        DomainChange remove(int32_t v) {
+        DomainChange remove(int32_t v) const {
             if (v == min()) return removeBelow(min() + 1);
             if (v == max()) return removeAbove(max() - 1);
             return DomainChange::none;
         }
 
-        DomainChange fix(int32_t v) {
-            int32_t oldMin = atomic(a).fetch_max(v);
-            int32_t oldMax = atomic(b).fetch_min(v);
+        DomainChange fix(int32_t v) const {
+            int32_t oldMin = atomic(ptr->a).fetch_max(v, sycl::memory_order::acq_rel);
+            int32_t oldMax = atomic(ptr->b).fetch_min(v, sycl::memory_order::acq_rel);
             if (v < oldMin || v > oldMax) return DomainChange::inconsistency;
-            if (v > oldMin || v < oldMax) return DomainChange::changed;
+            if (v > oldMin || v < oldMax) {
+                DomainEvent ev = DomainEvent::domain | DomainEvent::fix;
+                if (v > oldMin) ev |= DomainEvent::min;
+                if (v < oldMax) ev |= DomainEvent::max;
+                recordVarEvent(varEvents, varId, ev);
+                return DomainChange::changed;
+            }
             return DomainChange::none;
         }
 
-        DomainChange removeBelow(int32_t v) {
-            bool changed = atomic(a).fetch_max(v) < v;
+        DomainChange removeBelow(int32_t v) const {
+            bool changed = atomic(ptr->a).fetch_max(v, sycl::memory_order::acq_rel) < v;
             if (!changed) return DomainChange::none;
-            return v <= b ? DomainChange::changed : DomainChange::inconsistency;    
+            int32_t curMax = atomic(ptr->b).load(sycl::memory_order::acquire);
+            if (v > curMax) return DomainChange::inconsistency;
+            DomainEvent ev = DomainEvent::domain | DomainEvent::min;
+            if (v == curMax) ev |= DomainEvent::fix;
+            recordVarEvent(varEvents, varId, ev);
+            return DomainChange::changed;
         }
 
-        DomainChange removeAbove(int32_t v) {
-            bool changed = atomic(b).fetch_min(v) > v;
+        DomainChange removeAbove(int32_t v) const {
+            bool changed = atomic(ptr->b).fetch_min(v, sycl::memory_order::acq_rel) > v;
             if (!changed) return DomainChange::none;
-            return a <= v ? DomainChange::changed : DomainChange::inconsistency;    
+            int32_t curMin = atomic(ptr->a).load(sycl::memory_order::acquire);
+            if (curMin > v) return DomainChange::inconsistency;
+            DomainEvent ev = DomainEvent::domain | DomainEvent::max;
+            if (curMin == v) ev |= DomainEvent::fix;
+            recordVarEvent(varEvents, varId, ev);
+            return DomainChange::changed;
         }
 
     private:
         using atomic = sycl::atomic_ref<int32_t, sycl::memory_order::relaxed, sycl::memory_scope::work_group>;
 
-        int32_t a, b;
+        DeviceIntInterval* ptr;
+        uint32_t varId;
+        uint32_t* varEvents;
     };
 
 
@@ -139,7 +166,7 @@ namespace cp {
      */
     class IntInterval {
     public:
-        explicit IntInterval(uint32_t index) : index(index) {}
+        explicit IntInterval(uint32_t index, uint32_t varId = 0) : index(index), varId(varId) {}
         
         /**
          * @brief Allocate an integer variable with an interval domain
@@ -151,6 +178,7 @@ namespace cp {
         IntInterval(Allocator& allocator, int32_t min, int32_t max) {
             if (max < min) throw std::invalid_argument("max must be greater than or equal to min");
             index = allocator.allocate<HostIntInterval, Scope::state>(1);
+            varId = allocator.allocateVar(1);
             *allocator.getData<HostIntInterval, Scope::state>(index) = HostIntInterval(min, max);
         }
         
@@ -171,16 +199,25 @@ namespace cp {
         explicit IntInterval(Allocator& allocator) :
             IntInterval(allocator, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max()) {}
 
-        DeviceIntInterval& operator[](Context ctx) const {
-            return *ctx.getData<DeviceIntInterval, Scope::state>(index);
+        DeviceIntIntervalRef operator[](Context ctx) const {
+            return DeviceIntIntervalRef(ctx.getData<DeviceIntInterval, Scope::state>(index), varId, ctx.getVarEvents());
         }
 
         HostIntInterval& operator[](Allocator& allocator) const {
             return *allocator.getData<HostIntInterval, Scope::state>(index);
         }
 
+        void registerEvent(EventRegistrar& reg, DomainEvent ev) const {
+            reg.subscribe(varId, ev);
+        }
+
+        uint32_t id() const {
+            return varId;
+        }
+
     public:
         uint32_t index;
+        uint32_t varId;
     };
 
 
@@ -199,6 +236,7 @@ namespace cp {
         IntIntervalPtr(Allocator& allocator, int32_t min, int32_t max, uint32_t count) {
             if (max < min) throw std::invalid_argument("max must be greater than or equal to min");
             index = allocator.allocate<HostIntInterval, Scope::state>(count);
+            firstVarId = allocator.allocateVar(count);
             HostIntInterval* var = allocator.getData<HostIntInterval, Scope::state>(index);
             for (uint32_t i = 0; i < count; i++) {
                 var[i] = HostIntInterval(min, max);
@@ -223,7 +261,7 @@ namespace cp {
             IntIntervalPtr(allocator, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max(), count) {}
 
         IntInterval operator[](uint32_t i) const {
-            return IntInterval(index + i * sizeof(HostIntInterval));
+            return IntInterval(index + i * sizeof(HostIntInterval), firstVarId + i);
         }
 
         IntInterval operator[](Context, uint32_t i) const {
@@ -236,6 +274,7 @@ namespace cp {
 
     private:
         uint32_t index;
+        uint32_t firstVarId;
     };
 
 }
