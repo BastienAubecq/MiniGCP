@@ -38,15 +38,6 @@ namespace cp {
         }
 
         /**
-         * @brief Get the data for a scope
-         * @tparam scope The scope
-         */
-        template<Scope scope>
-        std::byte* getData() const {
-            return std::get<(int)scope>(data);
-        }
-
-        /**
          * @brief Get a data block
          * @tparam T Type of elements in the block
          * @tparam scope Scope of the block
@@ -55,7 +46,7 @@ namespace cp {
          */
         template<typename T, Scope scope>
         T* getData(uint32_t index) const {
-            return reinterpret_cast<T*>(getData<scope>() + index);
+            return reinterpret_cast<T*>(std::get<(int)scope>(data) + index);
         }
 
     private:

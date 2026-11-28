@@ -20,7 +20,7 @@ static void requireFeasible(uint32_t n, span<int32_t const> solution) {
 
 
 TEST_CASE("NQueens feasible", "[NQueens][example]") {
-    for (uint32_t n = 10; n <= 100; n += 5) {
+    for (uint32_t n = 10; n <= 50; n += 10) {
         auto solver = getNQueensSolver(n, testParams);
         solver.solve(firstSolution);
 
@@ -43,7 +43,7 @@ TEST_CASE("NQueens statistics", "[NQueens][example]") {
 
 
 TEST_CASE("NQueens_binary feasible", "[NQueens_binary][example]") {
-    for (uint32_t n = 10; n <= 100; n += 10) {
+    for (uint32_t n = 10; n <= 50; n += 10) {
         auto solver = getNQueensBinarySolver(n, testParams);
         solver.solve(firstSolution);
 

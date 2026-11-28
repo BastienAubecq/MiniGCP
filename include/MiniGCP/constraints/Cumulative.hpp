@@ -111,19 +111,18 @@ namespace cp {
 
             for (uint32_t k = 2; k <= pow2; k <<= 1) {
                 for (uint32_t j = k >> 1; j > 0; j >>= 1) {
-                    for (uint32_t i = tid; i < pow2; i += groupSize) {
-                        uint32_t ixj = i ^ j;
-                        if (ixj > i) {
-                            bool ascending = ((i & k) == 0);
-                            int32_t ti = tmp[i];
-                            int32_t tixj = tmp[ixj];
-                            if ((ascending && ti > tixj) || (!ascending && ti < tixj)) {
-                                tmp[i]               = tixj;
-                                tmp[ixj]             = ti;
-                                int32_t di           = tmp[offDelta + i];
-                                tmp[offDelta + i]    = tmp[offDelta + ixj];
-                                tmp[offDelta + ixj]  = di;
-                            }
+                    for (uint32_t p = tid; p < pow2 / 2; p += groupSize) {
+                        uint32_t i = ((p & ~(j - 1)) << 1) | (p & (j - 1));
+                        uint32_t ixj = i | j;
+                        bool ascending = (i & k) == 0;
+                        int32_t ti = tmp[i];
+                        int32_t tixj = tmp[ixj];
+                        if ((ascending && ti > tixj) || (!ascending && ti < tixj)) {
+                            tmp[i]               = tixj;
+                            tmp[ixj]             = ti;
+                            int32_t di           = tmp[offDelta + i];
+                            tmp[offDelta + i]    = tmp[offDelta + ixj];
+                            tmp[offDelta + ixj]  = di;
                         }
                     }
                     sycl::group_barrier(group);

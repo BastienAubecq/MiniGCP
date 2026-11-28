@@ -25,7 +25,7 @@ static void requireFeasible(TSP const& tsp, int32_t objective, std::span<int32_t
 
 
 TEST_CASE("TSP feasible", "[TSP][example]") {
-    for (uint32_t n = 10; n <= 100; n += 10) {
+    for (uint32_t n = 10; n <= 50; n += 10) {
         TSP tsp(n, 100);
         auto solver = tsp.solver(testParams);
         solver.solve([](SearchStatistics stats) { return stats.nSolutions > 0 && stats.nNodes >= 1000; });

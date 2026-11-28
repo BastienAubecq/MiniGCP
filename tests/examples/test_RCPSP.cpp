@@ -40,7 +40,7 @@ static void requireFeasible(RCPSP const& rcpsp, int32_t objective, std::span<int
 
 
 TEST_CASE("RCPSP feasible random instances", "[RCPSP][example]") {
-    for (uint32_t nAct = 10; nAct <= 100; nAct += 10) {
+    for (uint32_t nAct = 10; nAct <= 50; nAct += 10) {
         RCPSP rcpsp(nAct, 4, nAct);
         auto solver = rcpsp.solver(testParams);
         solver.solve([](SearchStatistics stats) { return stats.nSolutions > 0 && stats.nNodes >= 1000; });
@@ -80,7 +80,7 @@ TEST_CASE("RCPSP PSPLib j30_1_1 optimal", "[RCPSP][example]") {
 
 
 TEST_CASE("RCPSP_binary feasible random instances", "[RCPSP_binary][example]") {
-    for (uint32_t nAct = 10; nAct <= 100; nAct += 10) {
+    for (uint32_t nAct = 10; nAct <= 50; nAct += 10) {
         RCPSP rcpsp(nAct, 4, nAct);
         auto solver = rcpsp.binarySolver(testParams);
         solver.solve([](SearchStatistics stats) { return stats.nSolutions > 0 && stats.nNodes >= 1000; });

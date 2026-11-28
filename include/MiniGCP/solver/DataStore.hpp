@@ -26,6 +26,8 @@ namespace cp {
     template<Decision Decision, IntVarPtr Output, bool localLocal, bool localState>
     class DataStore {
     public:
+        using word = sycl::vec<uint32_t, 4>;
+
         DataStore(
             sycl::queue& queue, std::array<std::span<std::byte const>, 3> data, uint32_t temporarySize,
             Output output, uint32_t outputSize, size_t nGroups, uint32_t maxDepth
@@ -33,8 +35,8 @@ namespace cp {
             globalSize = data[0].size();
             localSize = data[1].size();
             stateSize = data[2].size();
-            if (localSize % sizeof(uint32_t) != 0) localSize += sizeof(uint32_t) - localSize % sizeof(uint32_t);
-            if (stateSize % sizeof(uint32_t) != 0) stateSize += sizeof(uint32_t) - stateSize % sizeof(uint32_t);
+            localSize = (localSize + sizeof(word) - 1) / sizeof(word);
+            stateSize = (stateSize + sizeof(word) - 1) / sizeof(word);
             stackSize = maxDepth;
             size_t allocLocalSize = localSize * (1 + nGroups);
             size_t allocStateSize = stateSize * (1 + (stackSize + 1) * nGroups);
@@ -45,14 +47,14 @@ namespace cp {
             }
 
             globalData = globalSize == 0 ? nullptr : sycl::malloc_device<std::byte>(globalSize, queue);
-            localData = localSize == 0 ? nullptr : sycl::malloc_device<std::byte>(allocLocalSize, queue);
-            stateData = stateSize == 0 ? nullptr : sycl::malloc_device<std::byte>(allocStateSize, queue);
+            localData = localSize == 0 ? nullptr : sycl::malloc_device<word>(allocLocalSize, queue);
+            stateData = stateSize == 0 ? nullptr : sycl::malloc_device<word>(allocStateSize, queue);
             outputData = sycl::malloc_device<int32_t>((outputSize + 1) * nGroups, queue);
             decisions = sycl::malloc_device<Decision>(stackSize * nGroups, queue);
             tops = sycl::malloc_device<uint32_t>(nGroups, queue);
             if (globalSize > 0) queue.memcpy(globalData, data[0].data(), globalSize);
-            if (localSize > 0) queue.memcpy(localData, data[1].data(), localSize);
-            if (stateSize > 0) queue.memcpy(stateData, data[2].data(), stateSize);
+            if (localSize > 0) queue.memcpy(localData, data[1].data(), localSize * sizeof(word));
+            if (stateSize > 0) queue.memcpy(stateData, data[2].data(), stateSize * sizeof(word));
             queue.memcpy(outputData, outputInit, sizeof(int32_t) * (outputSize + 1) * nGroups);
             queue.memset(tops, 0, sizeof(uint32_t) * nGroups);
             queue.wait();
@@ -99,14 +101,20 @@ namespace cp {
         }
 
 
+        using LocalMemory = std::tuple<
+            sycl::local_accessor<std::byte>,
+            sycl::local_accessor<word>,
+            sycl::local_accessor<word>
+        >;
+
         /**
          * @brief Get local memory
          */
-        std::array<sycl::local_accessor<std::byte>, 3> getLocalMemory(sycl::handler& handler) const {
+        LocalMemory getLocalMemory(sycl::handler& handler) const {
             return {
                 sycl::local_accessor<std::byte>(temporarySize + 4, handler), // Add 4 bytes for utils
-                sycl::local_accessor<std::byte>(localLocal ? localSize : 0, handler),
-                sycl::local_accessor<std::byte>(localState ? stateSize : 0, handler)
+                sycl::local_accessor<word>(localLocal ? localSize : 0, handler),
+                sycl::local_accessor<word>(localState ? stateSize : 0, handler)
             };
         }
 
@@ -117,15 +125,15 @@ namespace cp {
          * @param local Local memory
          * @return Current context
          */
-        Context getContext(sycl::nd_item<1> item, sycl::stream error, std::array<sycl::local_accessor<std::byte>, 3> local) const {
+        Context getContext(sycl::nd_item<1> item, sycl::stream error, LocalMemory local) const {
             return Context(item, error, {
                 globalData,
-                localLocal ?
+                reinterpret_cast<std::byte*>(localLocal ?
                     std::get<1>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
-                    localData + localSize * (1 + item.get_group(0)),
-                localState ?
+                    localData + localSize * (1 + item.get_group(0))),
+                reinterpret_cast<std::byte*>(localState ?
                     std::get<2>(local).get_multi_ptr<sycl::access::decorated::no>().get() :
-                    stateData + stateSize * (1 + item.get_group(0))
+                    stateData + stateSize * (1 + item.get_group(0)))
             }, std::get<0>(local).get_multi_ptr<sycl::access::decorated::no>().get() + 4);
         }
 
@@ -135,8 +143,8 @@ namespace cp {
          * @param ctx Current context
          */
         void reset(Context ctx) const {
-            copy(ctx.item, localData, ctx.getData<Scope::local>(), localSize);
-            copy(ctx.item, stateData, ctx.getData<Scope::state>(), stateSize);
+            copy(ctx.item, localData, ctx.getData<word, Scope::local>(0), localSize);
+            copy(ctx.item, stateData, ctx.getData<word, Scope::state>(0), stateSize);
         }
 
         /**
@@ -145,10 +153,10 @@ namespace cp {
          */
         void save(Context ctx) const {
             if (localLocal) {
-                copy(ctx.item, ctx.getData<Scope::local>(), localData + localSize * (1 + ctx.item.get_group(0)), localSize);
+                copy(ctx.item, ctx.getData<word, Scope::local>(0), localData + localSize * (1 + ctx.item.get_group(0)), localSize);
             }
             if (localState) {
-                copy(ctx.item, ctx.getData<Scope::state>(), stateData + stateSize * (1 + ctx.item.get_group(0)), stateSize);
+                copy(ctx.item, ctx.getData<word, Scope::state>(0), stateData + stateSize * (1 + ctx.item.get_group(0)), stateSize);
             }
         }
 
@@ -158,10 +166,10 @@ namespace cp {
          */
         void restore(Context ctx) const {
             if (localLocal) {
-                copy(ctx.item, localData + localSize * (1 + ctx.item.get_group(0)), ctx.getData<Scope::local>(), localSize);
+                copy(ctx.item, localData + localSize * (1 + ctx.item.get_group(0)), ctx.getData<word, Scope::local>(0), localSize);
             }
             if (localState) {
-                copy(ctx.item, stateData + stateSize * (1 + ctx.item.get_group(0)), ctx.getData<Scope::state>(), stateSize);
+                copy(ctx.item, stateData + stateSize * (1 + ctx.item.get_group(0)), ctx.getData<word, Scope::state>(0), stateSize);
             }
         }
 
@@ -181,8 +189,8 @@ namespace cp {
                 tops[ctx.item.get_group(0)] = index + 1;
                 decisions[ctx.item.get_group_range(0) * index + ctx.item.get_group(0)] = decision;
             }
-            std::byte* frame = stateData + stateSize * (1 + ctx.item.get_group_range(0) * (1 + index) + ctx.item.get_group(0));
-            copy(ctx.item, ctx.getData<Scope::state>(), frame, stateSize);
+            word* frame = stateData + stateSize * (1 + ctx.item.get_group_range(0) * (1 + index) + ctx.item.get_group(0));
+            copy(ctx.item, ctx.getData<word, Scope::state>(0), frame, stateSize);
             return true;
         }
 
@@ -199,8 +207,8 @@ namespace cp {
                 //printf("Pop %d\n", index);
                 tops[ctx.item.get_group(0)] = index;
             }
-            std::byte* frame = stateData + stateSize * (1 + ctx.item.get_group_range(0) * (1 + index) + ctx.item.get_group(0));
-            copy(ctx.item, frame, ctx.getData<Scope::state>(), stateSize);
+            word* frame = stateData + stateSize * (1 + ctx.item.get_group_range(0) * (1 + index) + ctx.item.get_group(0));
+            copy(ctx.item, frame, ctx.getData<word, Scope::state>(0), stateSize);
             return decisions[ctx.item.get_group_range(0) * index + ctx.item.get_group(0)];
         }
 
@@ -241,8 +249,8 @@ namespace cp {
         uint32_t temporarySize;
         uint32_t outputSize;
         std::byte* globalData;
-        std::byte* localData;
-        std::byte* stateData; // Stacks of states
+        word* localData;
+        word* stateData; // Stacks of states
         int32_t* outputData; // Values of the output variables
         Decision* decisions; // Stack of decisions
         uint32_t* tops; // Top of the stacks
@@ -250,23 +258,15 @@ namespace cp {
 
         /**
          * @brief Copy some data from a source to a destination with a group of threads.
-         * The size must be a multiple of `sizeof(uint32_t)`.
-         * The source and destination can't overlap.
          * @param item Current thread
          * @param src The source
          * @param dst The destination
-         * @param size Number of bytes to copy
+         * @param size Number of words to copy
          */
-        void copy(sycl::nd_item<1> item, std::byte const* src, std::byte* dst, uint32_t size) const {
-            // Copy using uint32_t instead of byte
-            uint32_t const* src32 = reinterpret_cast<uint32_t const*>(src);
-            uint32_t* dst32 = reinterpret_cast<uint32_t*>(dst);
-            size /= sizeof(uint32_t);
-
+        void copy(sycl::nd_item<1> item, word const* src, word* dst, uint32_t size) const {
             for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0)) {
-                dst32[i] = src32[i];
+                dst[i] = src[i];
             }
-
             sycl::group_barrier(item.get_group());
         }
     };
